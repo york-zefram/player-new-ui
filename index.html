@@ -26,6 +26,11 @@
             --loop-unplayed: #b0b0b0;
         }
 
+        /* 画面の揺れを防止する設定 */
+        * {
+            box-sizing: border-box; /* 全要素のサイズ計算を固定 */
+        }
+
         body {
             background-color: var(--bg-black);
             color: #fff;
@@ -33,9 +38,12 @@
             margin: 0;
             display: flex;
             justify-content: center;
-            overflow-x: hidden;
+            overflow: hidden; /* 左右・上下の不要なスクロールを禁止 */
+            width: 100vw;
+            height: 100vh;
             -webkit-user-select: none;
             user-select: none;
+            touch-action: manipulation; /* ダブルタップズームなどを抑制 */
         }
 
         .player-wrapper {
@@ -45,6 +53,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            overflow: hidden; /* 内部要素のはみ出しをカット */
         }
 
         section, header.glass-header {
@@ -55,6 +64,7 @@
             padding: 15px;
             border: 1px solid var(--glass-border);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            width: 100%; /* 横幅いっぱいに固定 */
         }
 
         header.glass-header { padding: 10px 15px; text-align: center; }
@@ -99,14 +109,13 @@
         .artist-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
         #artist-text { font-size: 0.75rem; color: var(--neon-blue); line-height: 1.2; }
         
-        /* 線を上に上げ、下の文字との隙間を広げる調整 */
         .status-action-row { 
             width: 100%; 
             display: flex; 
             justify-content: center; 
-            margin-top: 0px; /* 線を上に引き上げ */
-            padding-top: 12px; /* 線と文字の間の隙間を確保 */
-            border-top: 1px solid rgba(255, 255, 255, 0.15); /* 線を少しはっきりさせました */
+            margin-top: 0px; 
+            padding-top: 12px; 
+            border-top: 1px solid rgba(255, 255, 255, 0.15); 
         }
         .time-group { 
             display: flex; 
