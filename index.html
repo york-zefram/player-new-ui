@@ -332,18 +332,14 @@
 
     let posA = 0; let posB = 100;
     let isDragging = false;
-    let isFileOpening = false; // 二重発火防止フラグ
+    let isFileOpening = false; 
     const OFFSET_TIME = 0.3;
 
-    // 修正：選曲ボタンの連打防止処理
     btnSelect.addEventListener('click', (e) => {
-        e.stopPropagation(); // イベントの伝播を止める
-        if (isFileOpening) return; // 処理中なら何もしない
-        
+        e.stopPropagation();
+        if (isFileOpening) return;
         isFileOpening = true;
         fileInput.click();
-        
-        // 500ms後にフラグをリセット（ダイアログが立ち上がるまでの猶予）
         setTimeout(() => { isFileOpening = false; }, 500);
     });
 
@@ -461,7 +457,7 @@
         isDragging = false; 
         const cp = (audio.currentTime / audio.duration) * 100;
         if (cp < posA) audio.currentTime = ((posA / 100) * audio.duration) + 0.1;
-        if (!audio.paused) audio.play();
+        // play命令はplayボタンに任せる
     };
 
     document.getElementById('btn-set-a').onclick = () => { 
@@ -473,9 +469,11 @@
         updateSeekStyle(); 
     };
     
+    // 修正：A点に戻す際は「位置移動」のみを行い、再生命令は出さない
     document.getElementById('btn-back-to-a').onclick = () => { 
+        if (!audio.duration) return;
         audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
-        if (!audio.paused) audio.play();
+        // 再生ボタンの表示を現在のオーディオ状態に合わせるだけ
         playIcon.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
     };
 
@@ -508,7 +506,7 @@
                 dragging = false;
                 setTimeout(() => { 
                     isDragging = false; 
-                    if (!audio.paused) audio.play();
+                    // ここでの自動再生命令を削除
                 }, 50);
             }
         };
