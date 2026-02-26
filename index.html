@@ -197,17 +197,25 @@
         #marker-b { bottom: -42px; transform: translateX(-50%); } 
         #marker-b::after { top: -15px; }
 
+        /* 修正：エリアをさらに縦長に調整し、ボタンの垂直位置をずらす */
         .container-3 { 
             display: flex; 
             justify-content: center; 
             align-items: center; 
             gap: 15px; 
-            padding: 15px 0;
+            padding: 30px 0; /* 縦方向の余白をさらに追加 */
         }
-        .btn-large { width: 72px; height: 72px; }
-        .btn-small { width: 50px; height: 50px; }
+        .btn-large { 
+            width: 72px; 
+            height: 72px; 
+            transform: translateY(12px); /* 垂直に下げる */
+        }
+        .btn-small { 
+            width: 50px; 
+            height: 50px; 
+            transform: translateY(-12px); /* 垂直に上げる */
+        }
         .btn-icon { font-size: 2.2rem; }
-        /* 修正：padding-top を削除し、元の高さに戻しました */
         .btn-icon-s { font-size: 1.1rem; }
 
         .svg-icon { width: 1em; height: 1em; fill: currentColor; display: block; }
