@@ -26,9 +26,8 @@
             --loop-unplayed: #b0b0b0;
         }
 
-        /* 画面の揺れを防止する設定 */
         * {
-            box-sizing: border-box; /* 全要素のサイズ計算を固定 */
+            box-sizing: border-box;
         }
 
         body {
@@ -38,12 +37,12 @@
             margin: 0;
             display: flex;
             justify-content: center;
-            overflow: hidden; /* 左右・上下の不要なスクロールを禁止 */
+            overflow: hidden;
             width: 100vw;
             height: 100vh;
             -webkit-user-select: none;
             user-select: none;
-            touch-action: manipulation; /* ダブルタップズームなどを抑制 */
+            touch-action: manipulation;
         }
 
         .player-wrapper {
@@ -53,7 +52,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            overflow: hidden; /* 内部要素のはみ出しをカット */
+            overflow: hidden;
         }
 
         section, header.glass-header {
@@ -64,7 +63,7 @@
             padding: 15px;
             border: 1px solid var(--glass-border);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-            width: 100%; /* 横幅いっぱいに固定 */
+            width: 100%;
         }
 
         header.glass-header { padding: 10px 15px; text-align: center; }
@@ -455,6 +454,8 @@
         const currentP = (audio.currentTime / audio.duration) * 100;
         if (currentP < posA || currentP >= posB) {
             audio.currentTime = (posA / 100) * audio.duration;
+            // iOS対策: ループ時に確実に再生を維持
+            if (!audio.paused) audio.play();
         }
         seek.value = (audio.currentTime / audio.duration) * 100;
         document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
@@ -467,19 +468,27 @@
     };
 
     document.getElementById('btn-set-a').onclick = () => { 
+        const wasPlaying = !audio.paused;
         posA = (audio.currentTime / audio.duration) * 100; 
         updateSeekStyle(); 
+        if (wasPlaying) audio.play(); // 再生維持
     };
     document.getElementById('btn-set-b').onclick = () => { 
+        const wasPlaying = !audio.paused;
         posB = (audio.currentTime / audio.duration) * 100; 
         updateSeekStyle(); 
+        if (wasPlaying) audio.play(); // 再生維持
     };
     document.getElementById('btn-back-to-a').onclick = () => { 
+        const wasPlaying = !audio.paused;
         audio.currentTime = (posA / 100) * audio.duration; 
+        if (wasPlaying) audio.play(); // 再生維持
     };
 
     function setupDraggable(el, isA) {
         let dragging = false;
+        let wasPlayingOnStart = false;
+
         const move = (e) => {
             if (!dragging) return;
             const rect = seek.getBoundingClientRect();
@@ -493,12 +502,25 @@
             }
             updateSeekStyle();
         };
-        el.addEventListener('mousedown', () => dragging = true);
-        el.addEventListener('touchstart', () => dragging = true);
+
+        const start = () => {
+            dragging = true;
+            wasPlayingOnStart = !audio.paused;
+        };
+
+        const end = () => {
+            if (dragging && wasPlayingOnStart) {
+                audio.play(); // ドラッグ終了後に再生を再開
+            }
+            dragging = false;
+        };
+
+        el.addEventListener('mousedown', start);
+        el.addEventListener('touchstart', start);
         window.addEventListener('mousemove', move);
         window.addEventListener('touchmove', move);
-        window.addEventListener('mouseup', () => dragging = false);
-        window.addEventListener('touchend', () => dragging = false);
+        window.addEventListener('mouseup', end);
+        window.addEventListener('touchend', end);
     }
 
     setupDraggable(markerA, true); 
