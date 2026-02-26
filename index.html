@@ -312,7 +312,7 @@
     </section>
 </div>
 
-<audio id="audio"></audio>
+<audio id="audio" preload="auto" playsinline></audio>
 
 <script>
     const audio = document.getElementById('audio');
@@ -327,6 +327,7 @@
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
 
     let posA = 0; let posB = 100;
+    let isDraggingMarker = false;
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -335,7 +336,6 @@
         inner.classList.remove('scrolling-content');
         const oldClone = inner.querySelector('.marquee-clone');
         if (oldClone) inner.removeChild(oldClone);
-        
         if (inner.scrollWidth > box.clientWidth + 2) {
             const span = inner.querySelector('span');
             const clone = span.cloneNode(true);
@@ -350,7 +350,6 @@
         const playedColor = "var(--neon-blue)";
         const unplayedColor = "var(--loop-unplayed)";
         const outRangeColor = "var(--out-of-range)";
-        
         seekBg.style.background = `linear-gradient(to right, 
             ${outRangeColor} 0%, 
             ${outRangeColor} ${posA}%, 
@@ -360,10 +359,8 @@
             ${unplayedColor} ${posB}%, 
             ${outRangeColor} ${posB}%, 
             ${outRangeColor} 100%)`;
-        
         markerA.style.left = posA + "%";
         markerB.style.left = posB + "%";
-        
         if (audio.duration) {
             document.getElementById('ab-range-text').innerText = `${formatTime((posA/100)*audio.duration)} - ${formatTime((posB/100)*audio.duration)}`;
         }
@@ -384,13 +381,9 @@
     let tempoInterval;
     function startTempoChange(delta) {
         updateTempo(parseInt(tempoSlider.value) + delta);
-        tempoInterval = setInterval(() => {
-            updateTempo(parseInt(tempoSlider.value) + delta);
-        }, 100);
+        tempoInterval = setInterval(() => { updateTempo(parseInt(tempoSlider.value) + delta); }, 100);
     }
-    function stopTempoChange() {
-        clearInterval(tempoInterval);
-    }
+    function stopTempoChange() { clearInterval(tempoInterval); }
 
     document.getElementById('file-input').onchange = (e) => {
         const file = e.target.files[0];
@@ -401,7 +394,6 @@
         seek.value = 0;
         playIcon.innerHTML = ICON_PLAY; 
         updateTempo(100);
-        
         window.jsmediatags.read(file, {
             onSuccess: (tag) => {
                 const t = tag.tags;
@@ -413,48 +405,31 @@
                     document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
                     document.getElementById('jacket-img').style.display = 'block';
                 } else { document.getElementById('jacket-img').style.display = 'none'; }
-                
                 setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
             }
         });
     };
 
-    audio.onloadedmetadata = () => { 
-        updateSeekStyle();
-        checkMarquee('title-inner', 'title-box');
-        checkMarquee('artist-inner', 'artist-box');
-    };
+    audio.onloadedmetadata = () => { updateSeekStyle(); };
 
     const btnMinus = document.getElementById('tempo-minus');
     const btnPlus = document.getElementById('tempo-plus');
-    const btnReset = document.getElementById('tempo-reset');
-
-    btnMinus.addEventListener('mousedown', () => startTempoChange(-1));
     btnMinus.addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(-1); });
-    btnPlus.addEventListener('mousedown', () => startTempoChange(1));
     btnPlus.addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(1); });
-    window.addEventListener('mouseup', stopTempoChange);
     window.addEventListener('touchend', stopTempoChange);
-    btnReset.onclick = () => updateTempo(100);
-
+    document.getElementById('tempo-reset').onclick = () => updateTempo(100);
     tempoSlider.oninput = (e) => { audio.playbackRate = e.target.value / 100; };
 
     document.getElementById('btn-play').onclick = () => {
-        if (audio.paused) { 
-            audio.play(); 
-            playIcon.innerHTML = ICON_PAUSE; 
-        } else { 
-            audio.pause(); 
-            playIcon.innerHTML = ICON_PLAY; 
-        }
+        if (audio.paused) { audio.play(); playIcon.innerHTML = ICON_PAUSE; } 
+        else { audio.pause(); playIcon.innerHTML = ICON_PLAY; }
     };
 
     audio.ontimeupdate = () => {
-        if (!audio.duration) return;
+        if (!audio.duration || isDraggingMarker) return;
         const currentP = (audio.currentTime / audio.duration) * 100;
         if (currentP < posA || currentP >= posB) {
             audio.currentTime = (posA / 100) * audio.duration;
-            // iOS対策: ループ時に確実に再生を維持
             if (!audio.paused) audio.play();
         }
         seek.value = (audio.currentTime / audio.duration) * 100;
@@ -468,57 +443,49 @@
     };
 
     document.getElementById('btn-set-a').onclick = () => { 
-        const wasPlaying = !audio.paused;
         posA = (audio.currentTime / audio.duration) * 100; 
         updateSeekStyle(); 
-        if (wasPlaying) audio.play(); // 再生維持
+        if (!audio.paused) audio.play();
     };
     document.getElementById('btn-set-b').onclick = () => { 
-        const wasPlaying = !audio.paused;
         posB = (audio.currentTime / audio.duration) * 100; 
         updateSeekStyle(); 
-        if (wasPlaying) audio.play(); // 再生維持
+        if (!audio.paused) audio.play();
     };
     document.getElementById('btn-back-to-a').onclick = () => { 
-        const wasPlaying = !audio.paused;
         audio.currentTime = (posA / 100) * audio.duration; 
-        if (wasPlaying) audio.play(); // 再生維持
+        if (!audio.paused) audio.play();
     };
 
     function setupDraggable(el, isA) {
-        let dragging = false;
-        let wasPlayingOnStart = false;
-
+        let wasPlaying = false;
         const move = (e) => {
-            if (!dragging) return;
+            if (!isDraggingMarker) return;
             const rect = seek.getBoundingClientRect();
             const x = (e.touches ? e.touches[0].clientX : e.clientX);
             let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
             if (isA) {
-                posA = Math.min(val, posB - 1);
+                posA = Math.min(val, posB - 0.1);
                 audio.currentTime = (posA / 100) * audio.duration;
             } else {
-                posB = Math.max(val, posA + 1);
+                posB = Math.max(val, posA + 0.1);
             }
             updateSeekStyle();
+            // iOS対策: 移動中も再生コマンドを送り続ける
+            if (wasPlaying) audio.play();
         };
-
-        const start = () => {
-            dragging = true;
-            wasPlayingOnStart = !audio.paused;
+        const start = (e) => {
+            isDraggingMarker = true;
+            wasPlaying = !audio.paused;
         };
-
         const end = () => {
-            if (dragging && wasPlayingOnStart) {
-                audio.play(); // ドラッグ終了後に再生を再開
-            }
-            dragging = false;
+            if (isDraggingMarker && wasPlaying) audio.play();
+            isDraggingMarker = false;
         };
-
         el.addEventListener('mousedown', start);
-        el.addEventListener('touchstart', start);
+        el.addEventListener('touchstart', (e) => { start(); }, {passive: false});
         window.addEventListener('mousemove', move);
-        window.addEventListener('touchmove', move);
+        window.addEventListener('touchmove', (e) => { if(isDraggingMarker) { e.preventDefault(); move(e); } }, {passive: false});
         window.addEventListener('mouseup', end);
         window.addEventListener('touchend', end);
     }
