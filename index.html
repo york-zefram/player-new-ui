@@ -158,7 +158,6 @@
             line-height: 1;
         }
 
-        /* ＋と－のみを大きく太字に */
         #tempo-minus, #tempo-plus {
             font-size: 1.2rem;
             font-weight: bold;
@@ -354,12 +353,20 @@
     let isFileOpening = false; 
     const OFFSET_TIME = 0.3;
 
+    // --- iOS 復帰対策 ---
+    window.addEventListener('pageshow', () => {
+        isFileOpening = false; // 強制リセット
+        if (audio.src && !audio.paused) {
+            audio.play().catch(() => {}); // 再接続
+        }
+    });
+
     btnSelect.addEventListener('click', (e) => {
         e.stopPropagation();
         if (isFileOpening) return;
         isFileOpening = true;
         fileInput.click();
-        setTimeout(() => { isFileOpening = false; }, 500);
+        setTimeout(() => { isFileOpening = false; }, 1000); // 余裕を持って長めに設定
     });
 
     function checkMarquee(innerId, boxId) {
@@ -412,7 +419,7 @@
 
     fileInput.onchange = (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) { isFileOpening = false; return; }
         audio.src = URL.createObjectURL(file);
         posA = 0; posB = 100;
         audio.currentTime = 0; 
@@ -431,8 +438,14 @@
                     document.getElementById('jacket-img').style.display = 'block';
                 } else { document.getElementById('jacket-img').style.display = 'none'; }
                 setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+            },
+            onError: () => {
+                document.getElementById('title-text').innerText = file.name;
+                document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
+                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
             }
         });
+        isFileOpening = false;
     };
 
     audio.onloadedmetadata = () => { 
@@ -545,4 +558,3 @@
 </script>
 </body>
 </html>
-
