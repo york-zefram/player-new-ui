@@ -201,12 +201,14 @@
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            gap: 12px; 
+            gap: 15px; 
+            padding: 15px 0;
         }
-        .btn-large { width: 56px; height: 56px; }
-        .btn-small { width: 42px; height: 42px; }
-        .btn-icon { font-size: 1.8rem; }
-        .btn-icon-s { font-size: 0.9rem; }
+        .btn-large { width: 72px; height: 72px; }
+        .btn-small { width: 50px; height: 50px; }
+        .btn-icon { font-size: 2.2rem; }
+        /* 修正：文字を少し下げるために padding-top を追加 */
+        .btn-icon-s { font-size: 1.1rem; padding-top: 4px; }
 
         .svg-icon { width: 1em; height: 1em; fill: currentColor; display: block; }
 
@@ -260,7 +262,7 @@
                 <div class="marquee-box" id="artist-box" style="flex: 1;">
                     <div id="artist-inner" class="marquee-inner"><span id="artist-text">UNKNOWN ARTIST</span></div>
                 </div>
-                <button class="main-btn btn-select" id="btn-select-file">選曲</button>
+                <button class="main-btn btn-select" id="btn-select-file">選 曲</button>
             </div>
         </div>
         <div class="status-action-row">
@@ -457,7 +459,6 @@
         isDragging = false; 
         const cp = (audio.currentTime / audio.duration) * 100;
         if (cp < posA) audio.currentTime = ((posA / 100) * audio.duration) + 0.1;
-        // play命令はplayボタンに任せる
     };
 
     document.getElementById('btn-set-a').onclick = () => { 
@@ -469,11 +470,9 @@
         updateSeekStyle(); 
     };
     
-    // 修正：A点に戻す際は「位置移動」のみを行い、再生命令は出さない
     document.getElementById('btn-back-to-a').onclick = () => { 
         if (!audio.duration) return;
         audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
-        // 再生ボタンの表示を現在のオーディオ状態に合わせるだけ
         playIcon.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
     };
 
@@ -506,8 +505,7 @@
                 dragging = false;
                 setTimeout(() => { 
                     isDragging = false; 
-                    // ここでの自動再生命令を削除
-                }, 50);
+                }, 500);
             }
         };
 
@@ -530,5 +528,3 @@
 </script>
 </body>
 </html>
-
-
