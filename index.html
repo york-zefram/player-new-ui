@@ -315,6 +315,7 @@
 
     let posA = 0; let posB = 100;
     let isDragging = false;
+    const OFFSET_TIME = 0.3; // あなたの提案：0.3秒のバッファ
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -413,16 +414,15 @@
     audio.ontimeupdate = () => {
         if (!audio.duration || isDragging) return;
         const currentP = (audio.currentTime / audio.duration) * 100;
-        if (currentP < posA - 0.1 || currentP >= posB) {
-            audio.currentTime = (posA / 100) * audio.duration;
-            if (!audio.paused) audio.play();
+        // ループ判定：Aより前、またはBを超えたら A + 0.3s に戻す
+        if (currentP < posA - 0.05 || currentP >= posB) {
+            audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
         }
         seek.value = (audio.currentTime / audio.duration) * 100;
         document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
         updateSeekStyle();
     };
 
-    // シークバー（白丸）操作時の挙動
     seek.oninput = (e) => { 
         isDragging = true;
         audio.currentTime = (e.target.value / 100) * audio.duration; 
@@ -430,7 +430,9 @@
     };
     seek.onchange = () => { 
         isDragging = false; 
-        // スライド終了後に再生状態を確実に反映
+        // シーク後、A範囲内ならそのまま、範囲外なら補正して再生
+        const cp = (audio.currentTime / audio.duration) * 100;
+        if (cp < posA) audio.currentTime = ((posA / 100) * audio.duration) + 0.1;
         if (!audio.paused) audio.play();
     };
 
@@ -444,7 +446,8 @@
     };
     
     document.getElementById('btn-back-to-a').onclick = () => { 
-        audio.currentTime = (posA / 100) * audio.duration;
+        // ボタンでAに戻る時も 0.3s オフセットを適用して始動を確実に
+        audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
         if (!audio.paused) audio.play();
         playIcon.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
     };
@@ -465,8 +468,8 @@
 
             if (isA) {
                 posA = Math.min(val, posB - 1);
-                // --- 修正：A点を動かした時、白丸（再生位置）を完全に同期させる ---
-                audio.currentTime = (posA / 100) * audio.duration;
+                // A点移動中：白丸をA点に固定し、再生位置も A + 0.3s に保つ
+                audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
                 seek.value = posA;
             } else {
                 posB = Math.max(val, posA + 1);
