@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZEFRAM PLAYER NEO</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <meta name="apple-mobile-web-app-title" content="ZPN">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('ZPN: Offline Mode Ready'));
+      }
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-blue-glow: rgba(0, 242, 255, 0.6);
+            --bg-black: #080808;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --font-main: "A-OTF Gothic MB101 Pr5 R", sans-serif;
+            --out-of-range: rgba(255, 255, 255, 0.1);
+            --loop-unplayed: #b0b0b0;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: #fff;
+            font-family: var(--font-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .player-wrapper {
+            width: 100%;
+            max-width: 360px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        section, header.glass-header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 15px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        header.glass-header { padding: 10px 15px; text-align: center; }
+        .app-title { margin: 0; color: var(--neon-blue); font-size: 1.1rem; letter-spacing: 2px; text-shadow: 0 0 10px var(--neon-blue-glow); }
+
+        .info-header { display: flex; gap: 14px; align-items: flex-start; }
+        .thumb-box {
+            width: 80px; height: 80px;
+            border: 2px solid var(--neon-blue);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.5);
+            box-shadow: 0 0 10px var(--neon-blue-glow);
+            flex-shrink: 0;
+        }
+        #jacket-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+
+        .text-fields { 
+            flex: 1; 
+            height: 84px;
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            overflow: hidden;
+        }
+
+        .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; position: relative; min-height: 1.2em; }
+        .marquee-inner { display: inline-block; white-space: nowrap; vertical-align: top; }
+
+        @keyframes scroll-slow {
+            0% { transform: translateX(0); }
+            10% { transform: translateX(0); }
+            85% { transform: translateX(-50%); }
+            100% { transform: translateX(-50%); }
+        }
+        .scrolling-content { display: inline-block; padding-right: 50px; animation: scroll-slow 15s linear infinite; }
+
+        #title-text { font-weight: bold; font-size: 0.95rem; line-height: 1.2; }
+        .artist-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 1; margin-top: -2px; }
+        #artist-text { font-size: 0.75rem; color: var(--neon-blue); line-height: 1.2; }
+        .status-action-row { display: flex; align-items: flex-end; justify-content: flex-start; padding-bottom: 1px; }
+        .time-group { display: flex; gap: 12px; font-family: monospace; line-height: 1; }
+        #time-display { color: #fff; font-size: 0.95rem; font-weight: bold; }
+        #ab-range-text { color: var(--neon-blue); font-size: 0.95rem; font-weight: bold; }
+
+        .main-btn {
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--neon-blue);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .main-btn:active { transform: scale(0.92); }
+        
+        /* 選曲ボタンとテンポボタンの文字位置を微調整 */
+        .btn-select, .btn-tempo { 
+            width: 52px; 
+            height: 26px; 
+            border-radius: 13px; 
+            font-size: 0.7rem; 
+            font-weight: bold; 
+            line-height: 1;
+            padding-top: 1px; /* わずかに下げました */
+        }
+        .btn-tempo { font-size: 0.65rem; }
+        .btn-reset { width: 64px; }
+
+        .btn-round { border-radius: 50%; }
+        .btn-neon-border { border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue-glow); }
+        .btn-large { width: 75px; height: 75px; }
+        .btn-small { width: 55px; height: 55px; }
+        .btn-icon { font-size: 1.8rem; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; line-height: 1; font-weight: bold; }
+        .btn-icon-s { font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; line-height: 1; font-weight: bold; }
+
+        .container-2 { position: relative; padding: 15px; height: 100px; display: flex; align-items: center; }
+        .seek-wrapper { position: relative; width: 90%; height: 10px; display: flex; align-items: center; margin: 0 auto; }
+        .seek-bg-layer { position: absolute; width: 100%; height: 6px; background: var(--out-of-range); border-radius: 3px; z-index: 1; overflow: hidden; }
+        
+        input[type="range"]#main-seek { -webkit-appearance: none; width: 100%; background: transparent; position: relative; z-index: 5; margin: 0; }
+        input[type="range"]#main-seek::-webkit-slider-thumb { 
+            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px var(--neon-blue); margin-top: -7px; 
+        }
+
+        .marker { 
+            position: absolute; width: 32px; height: 32px; border-radius: 50%; 
+            border: 2px solid var(--neon-blue); background: var(--bg-black); 
+            color: var(--neon-blue); font-size: 14px; font-weight: bold; 
+            display: flex; justify-content: center; align-items: center; z-index: 10; 
+        }
+        .marker::after { content: ""; position: absolute; width: 2px; height: 20px; background: var(--neon-blue); left: 50%; transform: translateX(-50%); }
+        #marker-a { top: -42px; transform: translateX(-50%); }
+        #marker-a::after { bottom: -20px; }
+        #marker-b { bottom: -42px; transform: translateX(-50%); }
+        #marker-b::after { top: -20px; }
+
+        .container-3 { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 15px; }
+
+        .container-tempo { display: flex; flex-direction: column; gap: 15px; padding: 18px 15px 12px; }
+        .tempo-controls { display: flex; justify-content: space-between; align-items: center; }
+
+        input[type="range"]#tempo-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            background: var(--out-of-range);
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+            margin-bottom: 4px;
+        }
+        input[type="range"]#tempo-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+        .tempo-labels {
+            display: flex;
+            justify-content: space-between;
+            color: var(--neon-blue);
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            opacity: 0.8;
+            margin-top: -5px;
+        }
+        .tempo-labels span { width: 33%; }
+        .tempo-labels .label-l { text-align: left; }
+        .tempo-labels .label-c { text-align: center; }
+        .tempo-labels .label-r { text-align: right; }
+    </style>
+</head>
+<body>
+
+<div class="player-wrapper">
+    <header class="glass-header">
+        <h1 class="app-title">ZEFRAM PLAYER NEO</h1>
+    </header>
+
+    <section class="info-header">
+        <div class="thumb-box" id="jacket-container"><img id="jacket-img" src="" alt=""></div>
+        <div class="text-fields">
+            <div class="marquee-box" id="title-box">
+                <div id="title-inner" class="marquee-inner"><span id="title-text">SELECT TRACK</span></div>
+            </div>
+            <div class="artist-row">
+                <div class="marquee-box" id="artist-box" style="flex: 1;">
+                    <div id="artist-inner" class="marquee-inner"><span id="artist-text">UNKNOWN ARTIST</span></div>
+                </div>
+                <button class="main-btn btn-select" onclick="document.getElementById('file-input').click()">選曲</button>
+            </div>
+            <div class="status-action-row">
+                <div class="time-group">
+                    <div id="time-display">00:00 / 00:00</div>
+                    <div id="ab-range-text">00:00 - 00:00</div>
+                </div>
+            </div>
+            <input type="file" id="file-input" hidden accept="audio/*">
+        </div>
+    </section>
+
+    <section class="container-2">
+        <div class="seek-wrapper">
+            <div class="marker" id="marker-a">A</div>
+            <div class="marker" id="marker-b">B</div>
+            <div class="seek-bg-layer" id="seek-bg"></div>
+            <input type="range" id="main-seek" min="0" max="100" value="0" step="0.1">
+        </div>
+    </section>
+
+    <section class="container-3">
+        <button class="main-btn btn-round btn-small btn-neon-border" id="btn-set-a"><span class="btn-icon-s">A▶</span></button>
+        <button class="main-btn btn-round btn-large btn-neon-border" id="btn-back-to-a"><span class="btn-icon">⏮</span></button>
+        <button class="main-btn btn-round btn-large btn-neon-border" id="btn-play"><span class="btn-icon" id="play-icon">▶</span></button>
+        <button class="main-btn btn-round btn-small btn-neon-border" id="btn-set-b"><span class="btn-icon-s">◀B</span></button>
+    </section>
+
+    <section class="container-tempo">
+        <div class="tempo-controls">
+            <button class="main-btn btn-tempo" id="tempo-minus">－</button>
+            <button class="main-btn btn-tempo btn-reset" id="tempo-reset">RESET</button>
+            <button class="main-btn btn-tempo" id="tempo-plus">＋</button>
+        </div>
+        <input type="range" id="tempo-slider" min="50" max="150" step="1" value="100">
+        <div class="tempo-labels">
+            <span class="label-l">-50%</span>
+            <span class="label-c">0%</span>
+            <span class="label-r">+50%</span>
+        </div>
+    </section>
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+    const audio = document.getElementById('audio');
+    const seek = document.getElementById('main-seek');
+    const seekBg = document.getElementById('seek-bg');
+    const markerA = document.getElementById('marker-a');
+    const markerB = document.getElementById('marker-b');
+    const tempoSlider = document.getElementById('tempo-slider');
+    const playIcon = document.getElementById('play-icon');
+    
+    let posA = 0; let posB = 100;
+
+    function checkMarquee(innerId, boxId) {
+        const inner = document.getElementById(innerId);
+        const box = document.getElementById(boxId);
+        if (!inner || !box) return;
+        inner.classList.remove('scrolling-content');
+        const oldClone = inner.querySelector('.marquee-clone');
+        if (oldClone) inner.removeChild(oldClone);
+        
+        if (inner.scrollWidth > box.clientWidth + 2) {
+            const span = inner.querySelector('span');
+            const clone = span.cloneNode(true);
+            clone.classList.add('marquee-clone');
+            inner.appendChild(clone);
+            inner.classList.add('scrolling-content');
+        }
+    }
+
+    function updateSeekStyle() {
+        const current = (audio.currentTime / audio.duration * 100) || 0;
+        const playedColor = "var(--neon-blue)";
+        const unplayedColor = "var(--loop-unplayed)";
+        const outRangeColor = "var(--out-of-range)";
+        
+        seekBg.style.background = `linear-gradient(to right, 
+            ${outRangeColor} 0%, 
+            ${outRangeColor} ${posA}%, 
+            ${playedColor} ${posA}%, 
+            ${playedColor} ${current}%, 
+            ${unplayedColor} ${current}%, 
+            ${unplayedColor} ${posB}%, 
+            ${outRangeColor} ${posB}%, 
+            ${outRangeColor} 100%)`;
+        
+        markerA.style.left = posA + "%";
+        markerB.style.left = posB + "%";
+        
+        if (audio.duration) {
+            document.getElementById('ab-range-text').innerText = `${formatTime((posA/100)*audio.duration)} - ${formatTime((posB/100)*audio.duration)}`;
+        }
+    }
+
+    function formatTime(s) {
+        if (isNaN(s)) return "00:00";
+        const m = Math.floor(s / 60); const sec = Math.floor(s % 60);
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    function updateTempo(val) {
+        const newTempo = Math.max(50, Math.min(150, val));
+        tempoSlider.value = newTempo;
+        audio.playbackRate = newTempo / 100;
+    }
+
+    let tempoInterval;
+    function startTempoChange(delta) {
+        updateTempo(parseInt(tempoSlider.value) + delta);
+        tempoInterval = setInterval(() => {
+            updateTempo(parseInt(tempoSlider.value) + delta);
+        }, 100);
+    }
+    function stopTempoChange() {
+        clearInterval(tempoInterval);
+    }
+
+    document.getElementById('file-input').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        audio.src = URL.createObjectURL(file);
+        posA = 0; posB = 100;
+        audio.currentTime = 0; 
+        seek.value = 0;
+        playIcon.innerHTML = "▶"; 
+        updateTempo(100);
+        
+        window.jsmediatags.read(file, {
+            onSuccess: (tag) => {
+                const t = tag.tags;
+                document.getElementById('title-text').innerText = t.title || file.name;
+                document.getElementById('artist-text').innerText = t.artist || "UNKNOWN ARTIST";
+                if (t.picture) {
+                    let base = "";
+                    for (let i = 0; i < t.picture.data.length; i++) base += String.fromCharCode(t.picture.data[i]);
+                    document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
+                    document.getElementById('jacket-img').style.display = 'block';
+                } else { document.getElementById('jacket-img').style.display = 'none'; }
+                
+                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+            }
+        });
+    };
+
+    audio.onloadedmetadata = () => { 
+        updateSeekStyle();
+        checkMarquee('title-inner', 'title-box');
+        checkMarquee('artist-inner', 'artist-box');
+    };
+
+    const btnMinus = document.getElementById('tempo-minus');
+    const btnPlus = document.getElementById('tempo-plus');
+    const btnReset = document.getElementById('tempo-reset');
+
+    btnMinus.addEventListener('mousedown', () => startTempoChange(-1));
+    btnMinus.addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(-1); });
+    btnPlus.addEventListener('mousedown', () => startTempoChange(1));
+    btnPlus.addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(1); });
+    window.addEventListener('mouseup', stopTempoChange);
+    window.addEventListener('touchend', stopTempoChange);
+    btnReset.onclick = () => updateTempo(100);
+
+    tempoSlider.oninput = (e) => { audio.playbackRate = e.target.value / 100; };
+
+    document.getElementById('btn-play').onclick = () => {
+        if (audio.paused) { 
+            audio.play(); 
+            playIcon.innerHTML = "II"; 
+        } else { 
+            audio.pause(); 
+            playIcon.innerHTML = "▶"; 
+        }
+    };
+
+    audio.ontimeupdate = () => {
+        if (!audio.duration) return;
+        const currentP = (audio.currentTime / audio.duration) * 100;
+        if (currentP < posA || currentP >= posB) {
+            audio.currentTime = (posA / 100) * audio.duration;
+        }
+        seek.value = (audio.currentTime / audio.duration) * 100;
+        document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+        updateSeekStyle();
+    };
+
+    seek.oninput = (e) => { 
+        audio.currentTime = (e.target.value / 100) * audio.duration; 
+        updateSeekStyle(); 
+    };
+
+    document.getElementById('btn-set-a').onclick = () => { 
+        posA = (audio.currentTime / audio.duration) * 100; 
+        updateSeekStyle(); 
+    };
+    document.getElementById('btn-set-b').onclick = () => { 
+        posB = (audio.currentTime / audio.duration) * 100; 
+        updateSeekStyle(); 
+    };
+    document.getElementById('btn-back-to-a').onclick = () => { 
+        audio.currentTime = (posA / 100) * audio.duration; 
+    };
+
+    function setupDraggable(el, isA) {
+        let dragging = false;
+        const move = (e) => {
+            if (!dragging) return;
+            const rect = seek.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX);
+            let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
+            if (isA) {
+                posA = Math.min(val, posB - 1);
+                audio.currentTime = (posA / 100) * audio.duration;
+            } else {
+                posB = Math.max(val, posA + 1);
+            }
+            updateSeekStyle();
+        };
+        el.addEventListener('mousedown', () => dragging = true);
+        el.addEventListener('touchstart', () => dragging = true);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('touchmove', move);
+        window.addEventListener('mouseup', () => dragging = false);
+        window.addEventListener('touchend', () => dragging = false);
+    }
+
+    setupDraggable(markerA, true); 
+    setupDraggable(markerB, false);
+    window.onload = () => {
+        updateSeekStyle();
+        checkMarquee('title-inner', 'title-box');
+        checkMarquee('artist-inner', 'artist-box');
+    };
+</script>
+</body>
+</html>
