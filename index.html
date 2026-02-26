@@ -44,7 +44,6 @@
         .player-wrapper {
             width: 100%;
             max-width: 100%; 
-            /* ここで上部の余白（40px）を調整してください */
             padding: 40px 10px 10px 10px; 
             box-sizing: border-box;
             display: flex;
@@ -113,13 +112,14 @@
         }
         .time-group { 
             display: flex; 
-            gap: 10px;
+            gap: 12px;
             font-family: monospace; 
             line-height: 1; 
             white-space: nowrap;
         }
-        #time-display { color: #fff; font-size: 0.75rem; font-weight: bold; }
-        #ab-range-text { color: var(--neon-blue); font-size: 0.75rem; font-weight: bold; }
+        /* 時間表示のフォントサイズを 0.75rem -> 0.9rem に拡大 */
+        #time-display { color: #fff; font-size: 0.9rem; font-weight: bold; }
+        #ab-range-text { color: var(--neon-blue); font-size: 0.9rem; font-weight: bold; }
 
         .main-btn {
             border: 1px solid var(--glass-border);
@@ -138,15 +138,22 @@
         }
         .main-btn:active { transform: scale(0.92); }
         
-        .btn-select, .btn-tempo { 
-            width: 44px; 
-            height: 24px; 
-            border-radius: 12px; 
-            font-size: 0.65rem; 
+        .btn-select { 
+            width: 60px; 
+            height: 30px; 
+            border-radius: 15px; 
+            font-size: 0.75rem; 
             font-weight: bold; 
             line-height: 1;
         }
-        .btn-tempo { font-size: 0.6rem; }
+        .btn-tempo { 
+            width: 44px; 
+            height: 24px; 
+            border-radius: 12px; 
+            font-size: 0.6rem; 
+            font-weight: bold; 
+            line-height: 1;
+        }
         .btn-reset { width: 58px; }
 
         .btn-round { border-radius: 50%; }
