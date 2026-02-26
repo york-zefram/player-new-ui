@@ -43,10 +43,10 @@
 
         .player-wrapper {
             width: 100%;
-            /* 修正：最大幅を解除して横いっぱいに広げる */
             max-width: 100%; 
-            padding: 10px;
-            box-sizing: border-box; /* パディングを含めた幅計算 */
+            /* ここで上部の余白（40px）を調整してください */
+            padding: 40px 10px 10px 10px; 
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -158,7 +158,6 @@
             display: flex; 
             align-items: center; 
         }
-        /* シークバー全体の幅も連動して広がります */
         .seek-wrapper { position: relative; width: 90%; height: 10px; display: flex; align-items: center; margin: 0 auto; }
         .seek-bg-layer { position: absolute; width: 100%; height: 6px; background: var(--out-of-range); border-radius: 3px; z-index: 1; overflow: hidden; }
         
@@ -318,7 +317,7 @@
 
     let posA = 0; let posB = 100;
     let isDragging = false;
-    const OFFSET_TIME = 0.3; // 0.3秒のバッファ
+    const OFFSET_TIME = 0.3;
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
