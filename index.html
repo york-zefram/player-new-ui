@@ -314,7 +314,7 @@
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
 
     let posA = 0; let posB = 100;
-    let isDragging = false; // 全体的なドラッグ中フラグ
+    let isDragging = false;
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -411,27 +411,28 @@
     };
 
     audio.ontimeupdate = () => {
-        // ドラッグ中は再生位置の自動更新（ループ判定含む）を完全に止める
         if (!audio.duration || isDragging) return;
-        
         const currentP = (audio.currentTime / audio.duration) * 100;
-        // 範囲外判定
-        if (currentP < posA - 0.5 || currentP >= posB) {
+        if (currentP < posA - 0.1 || currentP >= posB) {
             audio.currentTime = (posA / 100) * audio.duration;
+            if (!audio.paused) audio.play();
         }
-        
         seek.value = (audio.currentTime / audio.duration) * 100;
         document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
         updateSeekStyle();
     };
 
-    // シークバー本体の操作
+    // シークバー（白丸）操作時の挙動
     seek.oninput = (e) => { 
         isDragging = true;
         audio.currentTime = (e.target.value / 100) * audio.duration; 
         updateSeekStyle(); 
     };
-    seek.onchange = () => { isDragging = false; };
+    seek.onchange = () => { 
+        isDragging = false; 
+        // スライド終了後に再生状態を確実に反映
+        if (!audio.paused) audio.play();
+    };
 
     document.getElementById('btn-set-a').onclick = () => { 
         posA = (audio.currentTime / audio.duration) * 100; 
@@ -454,19 +455,19 @@
 
         const move = (e) => {
             if (!dragging) return;
-            isDragging = true; // グローバルフラグ
+            isDragging = true;
             const rect = seek.getBoundingClientRect();
             const x = (e.touches ? e.touches[0].clientX : e.clientX);
             let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
             
-            // 指が震えても0.1%以上の変化がない限り更新しない（SE対策）
-            if (Math.abs(val - lastVal) < 0.1) return;
+            if (Math.abs(val - lastVal) < 0.05) return;
             lastVal = val;
 
             if (isA) {
                 posA = Math.min(val, posB - 1);
-                // 再生位置を直接書き換えるのをドラッグ中のみ控えめに（震え防止）
+                // --- 修正：A点を動かした時、白丸（再生位置）を完全に同期させる ---
                 audio.currentTime = (posA / 100) * audio.duration;
+                seek.value = posA;
             } else {
                 posB = Math.max(val, posA + 1);
             }
@@ -476,7 +477,10 @@
         const stop = () => {
             if (dragging) {
                 dragging = false;
-                setTimeout(() => { isDragging = false; }, 50); // 判定の衝突を防ぐため僅かに遅延
+                setTimeout(() => { 
+                    isDragging = false; 
+                    if (!audio.paused) audio.play();
+                }, 50);
             }
         };
 
