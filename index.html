@@ -144,16 +144,19 @@
             height: 100%; 
             line-height: 1; 
         }
-        .btn-icon { font-size: 1.8rem; }
+        .btn-icon { font-size: 2.2rem; }
         .btn-icon-s { font-size: 1.1rem; }
 
-        /* iOSでの絵文字化対策 & 戻るボタンの高さ微調整 */
-        #btn-back-to-a .btn-icon {
-            font-family: sans-serif;
-            padding-bottom: 4px;
+        .svg-icon {
+            width: 1em;
+            height: 1em;
+            fill: currentColor;
+            display: block;
         }
-        #play-icon {
-            font-family: sans-serif;
+
+        #btn-back-to-a .btn-icon {
+            padding-top: 2px;
+            padding-bottom: 0;
         }
 
         .container-2 { position: relative; padding: 15px; height: 100px; display: flex; align-items: center; }
@@ -256,8 +259,16 @@
 
     <section class="container-3">
         <button class="main-btn btn-round btn-small btn-neon-border" id="btn-set-a"><span class="btn-icon-s">A▶</span></button>
-        <button class="main-btn btn-round btn-large btn-neon-border" id="btn-back-to-a"><span class="btn-icon">⏮</span></button>
-        <button class="main-btn btn-round btn-large btn-neon-border" id="btn-play"><span class="btn-icon" id="play-icon">▶</span></button>
+        <button class="main-btn btn-round btn-large btn-neon-border" id="btn-back-to-a">
+            <span class="btn-icon">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </span>
+        </button>
+        <button class="main-btn btn-round btn-large btn-neon-border" id="btn-play">
+            <span class="btn-icon" id="play-icon">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+        </button>
         <button class="main-btn btn-round btn-small btn-neon-border" id="btn-set-b"><span class="btn-icon-s">◀B</span></button>
     </section>
 
@@ -287,6 +298,10 @@
     const tempoSlider = document.getElementById('tempo-slider');
     const playIcon = document.getElementById('play-icon');
     
+    const ICON_PLAY = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    // 一時停止アイコンのパスをさらに右へ調整（x=6.5とx=15.5）
+    const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
+
     let posA = 0; let posB = 100;
 
     function checkMarquee(innerId, boxId) {
@@ -360,7 +375,7 @@
         posA = 0; posB = 100;
         audio.currentTime = 0; 
         seek.value = 0;
-        playIcon.innerHTML = "▶"; 
+        playIcon.innerHTML = ICON_PLAY; 
         updateTempo(100);
         
         window.jsmediatags.read(file, {
@@ -403,10 +418,10 @@
     document.getElementById('btn-play').onclick = () => {
         if (audio.paused) { 
             audio.play(); 
-            playIcon.innerHTML = "II"; 
+            playIcon.innerHTML = ICON_PAUSE; 
         } else { 
             audio.pause(); 
-            playIcon.innerHTML = "▶"; 
+            playIcon.innerHTML = ICON_PLAY; 
         }
     };
 
