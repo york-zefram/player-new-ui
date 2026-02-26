@@ -135,7 +135,10 @@
             padding: 0;
             box-sizing: border-box;
         }
-        .main-btn:active { transform: scale(0.92); }
+
+        .btn-select:active, .btn-tempo:active { transform: scale(0.92); }
+        .btn-large:active { transform: translateY(12px) scale(0.92); }
+        .btn-small:active { transform: translateY(-12px) scale(0.92); }
         
         .btn-select { 
             width: 60px; 
@@ -197,26 +200,26 @@
         #marker-b { bottom: -42px; transform: translateX(-50%); } 
         #marker-b::after { top: -15px; }
 
-        /* 修正：エリアをさらに縦長に調整し、ボタンの垂直位置をずらす */
         .container-3 { 
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            gap: 15px; 
-            padding: 30px 0; /* 縦方向の余白をさらに追加 */
+            gap: 8px; /* ボタンの間隔を少し狭く */
+            padding: 6px 6px; 
+            min-height: 100px; 
         }
         .btn-large { 
-            width: 72px; 
-            height: 72px; 
-            transform: translateY(12px); /* 垂直に下げる */
+            width: 70px; 
+            height: 70px; 
+            transform: translateY(12px); 
         }
         .btn-small { 
-            width: 50px; 
-            height: 50px; 
-            transform: translateY(-12px); /* 垂直に上げる */
+            width: 40px; /* A・Bボタンを少し小さく */
+            height: 40px; 
+            transform: translateY(-25px); 
         }
         .btn-icon { font-size: 2.2rem; }
-        .btn-icon-s { font-size: 1.1rem; }
+        .btn-icon-s { font-size: 0.9rem; /* 小さくしたボタンに合わせてアイコンも調整 */ }
 
         .svg-icon { width: 1em; height: 1em; fill: currentColor; display: block; }
 
