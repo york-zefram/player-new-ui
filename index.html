@@ -2,11 +2,12 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ZEFRAM PLAYER NEO</title>
    <meta name="apple-mobile-web-app-title" content="ZPN">
    <link rel="apple-touch-icon" href="icon.png">
    <meta name="apple-mobile-web-app-capable" content="yes">
+   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
   <script>
       if ('serviceWorker' in navigator) {
@@ -26,6 +27,7 @@
             --loop-unplayed: #b0b0b0;
         }
 
+        /* --- 修正ポイント：全画面固定レイアウト --- */
         body {
             background-color: var(--bg-black);
             color: #fff;
@@ -33,9 +35,20 @@
             margin: 0;
             display: flex;
             justify-content: center;
-            overflow-x: hidden;
+            align-items: flex-start;
+            
+            /* スクロールと揺れを完全に禁止 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none; 
+            
             -webkit-user-select: none;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .player-wrapper {
@@ -45,15 +58,15 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            /* 画面中央に配置したい場合は align-self: center; を追加 */
         }
 
-        /* --- すべてのエリアの上下余白を 6px に統一 --- */
         section, header.glass-header {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 6px 15px; /* 上下 6px で統一 */
+            padding: 6px 15px;
             border: 1px solid var(--glass-border);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
@@ -195,7 +208,6 @@
         .svg-icon { width: 1em; height: 1em; fill: currentColor; display: block; }
         #btn-back-to-a .btn-icon { padding-top: 2px; padding-bottom: 0; }
 
-        /* テンポエリアも 6px padding に合わせて内部の gap 等を微調整 */
         .container-tempo { display: flex; flex-direction: column; gap: 12px; }
         .tempo-controls { display: flex; justify-content: space-between; align-items: center; }
 
