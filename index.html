@@ -158,6 +158,12 @@
             line-height: 1;
         }
 
+        /* ＋と－のみを大きく太字に */
+        #tempo-minus, #tempo-plus {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
         .btn-round { border-radius: 50%; }
         .btn-neon-border { border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue-glow); }
 
@@ -204,7 +210,7 @@
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            gap: 10px; /* ボタンの間隔を少し狭く */
+            gap: 10px; 
             padding: 6px 6px; 
             min-height: 100px; 
         }
@@ -214,12 +220,12 @@
             transform: translateY(12px); 
         }
         .btn-small { 
-            width: 40px; /* A・Bボタンを少し小さく */
+            width: 40px; 
             height: 40px; 
             transform: translateY(-25px); 
         }
         .btn-icon { font-size: 2.2rem; }
-        .btn-icon-s { font-size: 0.9rem; /* 小さくしたボタンに合わせてアイコンも調整 */ }
+        .btn-icon-s { font-size: 0.9rem; }
 
         .svg-icon { width: 1em; height: 1em; fill: currentColor; display: block; }
 
@@ -227,7 +233,7 @@
             display: flex; 
             flex-direction: column; 
             gap: 20px; 
-            padding-bottom: 15px;
+            padding: 15px 15px;
         }
         .tempo-controls { 
             display: flex; 
@@ -244,7 +250,7 @@
             justify-content: space-between;
             color: var(--neon-blue);
             font-family: monospace;
-            font-size: 0.7rem;
+            font-size: 1rem;
             font-weight: bold;
             opacity: 0.8;
             margin-top: -8px;
@@ -387,8 +393,8 @@
 
     function formatTime(s) {
         if (isNaN(s)) return "00:00";
-        const m = Math.floor(s / 60); const sec = Math.floor(s % 60);
-        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        const m = Math.floor(s / 60); const scale = Math.floor(s % 60);
+        return `${m.toString().padStart(2, '0')}:${scale.toString().padStart(2, '0')}`;
     }
 
     function updateTempo(val) {
