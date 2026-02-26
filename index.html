@@ -96,10 +96,17 @@
         #title-text { font-weight: bold; font-size: 0.95rem; line-height: 1.2; }
         .artist-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 1; margin-top: -2px; }
         #artist-text { font-size: 0.75rem; color: var(--neon-blue); line-height: 1.2; }
-        .status-action-row { display: flex; align-items: flex-end; justify-content: flex-start; padding-bottom: 1px; }
-        .time-group { display: flex; gap: 12px; font-family: monospace; line-height: 1; }
-        #time-display { color: #fff; font-size: 0.95rem; font-weight: bold; }
-        #ab-range-text { color: var(--neon-blue); font-size: 0.95rem; font-weight: bold; }
+        
+        .status-action-row { display: flex; align-items: flex-end; justify-content: flex-start; padding-bottom: 1px; width: 100%; }
+        .time-group { 
+            display: flex; 
+            gap: 14px; /* 隙間を 8px から 14px に増やしました */
+            font-family: monospace; 
+            line-height: 1; 
+            white-space: nowrap;
+        }
+        #time-display { color: #fff; font-size: 0.85rem; font-weight: bold; }
+        #ab-range-text { color: var(--neon-blue); font-size: 0.85rem; font-weight: bold; }
 
         .main-btn {
             border: 1px solid var(--glass-border);
@@ -299,7 +306,6 @@
     const playIcon = document.getElementById('play-icon');
     
     const ICON_PLAY = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-    // 一時停止アイコンのパスをさらに右へ調整（x=6.5とx=15.5）
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
 
     let posA = 0; let posB = 100;
