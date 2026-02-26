@@ -63,12 +63,14 @@
         .info-header { display: flex; gap: 14px; align-items: flex-start; }
         .thumb-box {
             width: 80px; height: 80px;
-            border: 2px solid var(--neon-blue);
+            /* アウトラインを削除しました */
+            border: none;
             border-radius: 10px;
             overflow: hidden;
             display: flex; justify-content: center; align-items: center;
             background: rgba(0,0,0,0.5);
-            box-shadow: 0 0 10px var(--neon-blue-glow);
+            /* グロー効果を削除しました */
+            box-shadow: none;
             flex-shrink: 0;
         }
         #jacket-img { width: 100%; height: 100%; object-fit: cover; display: none; }
@@ -100,7 +102,7 @@
         .status-action-row { display: flex; align-items: flex-end; justify-content: flex-start; padding-bottom: 1px; width: 100%; }
         .time-group { 
             display: flex; 
-            gap: 14px; /* 隙間を 8px から 14px に増やしました */
+            gap: 14px;
             font-family: monospace; 
             line-height: 1; 
             white-space: nowrap;
