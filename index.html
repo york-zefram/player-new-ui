@@ -7,7 +7,7 @@
    <meta name="apple-mobile-web-app-title" content="ZPN">
    <link rel="apple-touch-icon" href="icon.png">
    <meta name="apple-mobile-web-app-capable" content="yes">
-    <script                src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
   <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
@@ -118,7 +118,6 @@
         }
         .main-btn:active { transform: scale(0.92); }
         
-        /* 選曲ボタンとテンポボタンの文字位置を微調整 */
         .btn-select, .btn-tempo { 
             width: 52px; 
             height: 26px; 
@@ -126,7 +125,7 @@
             font-size: 0.7rem; 
             font-weight: bold; 
             line-height: 1;
-            padding-top: 1px; /* わずかに下げました */
+            padding-top: 1px;
         }
         .btn-tempo { font-size: 0.65rem; }
         .btn-reset { width: 64px; }
@@ -135,8 +134,27 @@
         .btn-neon-border { border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue-glow); }
         .btn-large { width: 75px; height: 75px; }
         .btn-small { width: 55px; height: 55px; }
-        .btn-icon { font-size: 1.8rem; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; line-height: 1; font-weight: bold; }
-        .btn-icon-s { font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; line-height: 1; font-weight: bold; }
+
+        .btn-icon, .btn-icon-s { 
+            font-weight: bold;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            width: 100%; 
+            height: 100%; 
+            line-height: 1; 
+        }
+        .btn-icon { font-size: 1.8rem; }
+        .btn-icon-s { font-size: 1.1rem; }
+
+        /* iOSでの絵文字化対策 & 戻るボタンの高さ微調整 */
+        #btn-back-to-a .btn-icon {
+            font-family: sans-serif;
+            padding-bottom: 4px;
+        }
+        #play-icon {
+            font-family: sans-serif;
+        }
 
         .container-2 { position: relative; padding: 15px; height: 100px; display: flex; align-items: center; }
         .seek-wrapper { position: relative; width: 90%; height: 10px; display: flex; align-items: center; margin: 0 auto; }
@@ -223,7 +241,7 @@
                     <div id="ab-range-text">00:00 - 00:00</div>
                 </div>
             </div>
-            <input type="file" id="file-input" hidden accept="audio/*">
+            <input type="file" id="file-input" hidden accept=".mp3,.m4a,.wav,.flac,.ogg,.aac,audio/*">
         </div>
     </section>
 
