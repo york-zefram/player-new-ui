@@ -314,7 +314,7 @@
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
 
     let posA = 0; let posB = 100;
-    let draggingA = false;
+    let isDragging = false; // 全体的なドラッグ中フラグ
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -401,7 +401,6 @@
     document.getElementById('tempo-reset').onclick = () => updateTempo(100);
     tempoSlider.oninput = (e) => audio.playbackRate = e.target.value / 100;
 
-    // --- 修正：再生ボタンの挙動を強化 ---
     document.getElementById('btn-play').onclick = () => {
         if (audio.paused) { 
             audio.play().then(() => { playIcon.innerHTML = ICON_PAUSE; });
@@ -412,22 +411,27 @@
     };
 
     audio.ontimeupdate = () => {
-        if (!audio.duration || draggingA) return;
+        // ドラッグ中は再生位置の自動更新（ループ判定含む）を完全に止める
+        if (!audio.duration || isDragging) return;
+        
         const currentP = (audio.currentTime / audio.duration) * 100;
-        if (currentP < posA || currentP >= posB) {
+        // 範囲外判定
+        if (currentP < posA - 0.5 || currentP >= posB) {
             audio.currentTime = (posA / 100) * audio.duration;
-            // ループ時に再生状態を維持する
-            if (!audio.paused) audio.play(); 
         }
+        
         seek.value = (audio.currentTime / audio.duration) * 100;
         document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
         updateSeekStyle();
     };
 
+    // シークバー本体の操作
     seek.oninput = (e) => { 
+        isDragging = true;
         audio.currentTime = (e.target.value / 100) * audio.duration; 
         updateSeekStyle(); 
     };
+    seek.onchange = () => { isDragging = false; };
 
     document.getElementById('btn-set-a').onclick = () => { 
         posA = (audio.currentTime / audio.duration) * 100; 
@@ -438,40 +442,46 @@
         updateSeekStyle(); 
     };
     
-    // --- 修正：Aに戻った際にアイコンと再生状態を同期 ---
     document.getElementById('btn-back-to-a').onclick = () => { 
         audio.currentTime = (posA / 100) * audio.duration;
-        if (!audio.paused) {
-            audio.play().then(() => { playIcon.innerHTML = ICON_PAUSE; });
-        }
+        if (!audio.paused) audio.play();
+        playIcon.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
     };
 
     function setupDraggable(el, isA) {
         let dragging = false;
+        let lastVal = -1;
+
         const move = (e) => {
             if (!dragging) return;
+            isDragging = true; // グローバルフラグ
             const rect = seek.getBoundingClientRect();
             const x = (e.touches ? e.touches[0].clientX : e.clientX);
             let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
+            
+            // 指が震えても0.1%以上の変化がない限り更新しない（SE対策）
+            if (Math.abs(val - lastVal) < 0.1) return;
+            lastVal = val;
+
             if (isA) {
-                draggingA = true;
                 posA = Math.min(val, posB - 1);
+                // 再生位置を直接書き換えるのをドラッグ中のみ控えめに（震え防止）
                 audio.currentTime = (posA / 100) * audio.duration;
             } else {
                 posB = Math.max(val, posA + 1);
             }
             updateSeekStyle();
         };
+
         const stop = () => {
-            dragging = false;
-            if (isA) {
-                draggingA = false;
-                // A点ドラッグ終了後に再生状態ならアイコンを合わせる
-                if (!audio.paused) playIcon.innerHTML = ICON_PAUSE;
+            if (dragging) {
+                dragging = false;
+                setTimeout(() => { isDragging = false; }, 50); // 判定の衝突を防ぐため僅かに遅延
             }
         };
+
         el.addEventListener('mousedown', () => dragging = true);
-        el.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; });
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; }, {passive: false});
         window.addEventListener('mousemove', move);
         window.addEventListener('touchmove', move, { passive: false });
         window.addEventListener('mouseup', stop);
@@ -480,6 +490,7 @@
 
     setupDraggable(markerA, true); 
     setupDraggable(markerB, false);
+    
     window.onload = () => {
         updateSeekStyle();
         checkMarquee('title-inner', 'title-box');
