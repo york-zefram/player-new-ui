@@ -60,15 +60,16 @@
         header.glass-header { padding: 10px 15px; text-align: center; }
         .app-title { margin: 0; color: var(--neon-blue); font-size: 1.1rem; letter-spacing: 2px; text-shadow: 0 0 10px var(--neon-blue-glow); }
 
-        .info-header { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
-        
+        .info-header { display: flex; gap: 14px; align-items: flex-start; }
         .thumb-box {
             width: 80px; height: 80px;
+            /* アウトラインを削除しました */
             border: none;
             border-radius: 10px;
             overflow: hidden;
             display: flex; justify-content: center; align-items: center;
             background: rgba(0,0,0,0.5);
+            /* グロー効果を削除しました */
             box-shadow: none;
             flex-shrink: 0;
         }
@@ -76,11 +77,10 @@
 
         .text-fields { 
             flex: 1; 
-            height: 80px; 
+            height: 84px;
             display: flex; 
             flex-direction: column; 
-            justify-content: center; 
-            gap: 8px;
+            justify-content: space-between; 
             overflow: hidden;
         }
 
@@ -96,18 +96,10 @@
         .scrolling-content { display: inline-block; padding-right: 50px; animation: scroll-slow 15s linear infinite; }
 
         #title-text { font-weight: bold; font-size: 0.95rem; line-height: 1.2; }
-        .artist-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+        .artist-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 1; margin-top: -2px; }
         #artist-text { font-size: 0.75rem; color: var(--neon-blue); line-height: 1.2; }
         
-        /* 線を上に上げ、下の文字との隙間を広げる調整 */
-        .status-action-row { 
-            width: 100%; 
-            display: flex; 
-            justify-content: center; 
-            margin-top: 0px; /* 線を上に引き上げ */
-            padding-top: 12px; /* 線と文字の間の隙間を確保 */
-            border-top: 1px solid rgba(255, 255, 255, 0.15); /* 線を少しはっきりさせました */
-        }
+        .status-action-row { display: flex; align-items: flex-end; justify-content: flex-start; padding-bottom: 1px; width: 100%; }
         .time-group { 
             display: flex; 
             gap: 14px;
@@ -255,14 +247,14 @@
                 </div>
                 <button class="main-btn btn-select" onclick="document.getElementById('file-input').click()">選曲</button>
             </div>
-        </div>
-        <div class="status-action-row">
-            <div class="time-group">
-                <div id="time-display">00:00 / 00:00</div>
-                <div id="ab-range-text">00:00 - 00:00</div>
+            <div class="status-action-row">
+                <div class="time-group">
+                    <div id="time-display">00:00 / 00:00</div>
+                    <div id="ab-range-text">00:00 - 00:00</div>
+                </div>
             </div>
+            <input type="file" id="file-input" hidden accept=".mp3,.m4a,.wav,.flac,.ogg,.aac,audio/*">
         </div>
-        <input type="file" id="file-input" hidden accept=".mp3,.m4a,.wav,.flac,.ogg,.aac,audio/*">
     </section>
 
     <section class="container-2">
