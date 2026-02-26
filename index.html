@@ -27,7 +27,6 @@
             --loop-unplayed: #b0b0b0;
         }
 
-        /* --- 修正ポイント：全画面固定レイアウト --- */
         body {
             background-color: var(--bg-black);
             color: #fff;
@@ -36,8 +35,6 @@
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            
-            /* スクロールと揺れを完全に禁止 */
             position: fixed;
             top: 0;
             left: 0;
@@ -45,7 +42,6 @@
             height: 100%;
             overflow: hidden;
             touch-action: none; 
-            
             -webkit-user-select: none;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -58,7 +54,6 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            /* 画面中央に配置したい場合は align-self: center; を追加 */
         }
 
         section, header.glass-header {
@@ -328,6 +323,7 @@
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
 
     let posA = 0; let posB = 100;
+    let draggingA = false; // A点操作フラグ
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -451,7 +447,7 @@
     };
 
     audio.ontimeupdate = () => {
-        if (!audio.duration) return;
+        if (!audio.duration || draggingA) return; // A点操作中はループ判定をスキップ
         const currentP = (audio.currentTime / audio.duration) * 100;
         if (currentP < posA || currentP >= posB) {
             audio.currentTime = (posA / 100) * audio.duration;
@@ -486,19 +482,24 @@
             const x = (e.touches ? e.touches[0].clientX : e.clientX);
             let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
             if (isA) {
+                draggingA = true;
                 posA = Math.min(val, posB - 1);
-                audio.currentTime = (posA / 100) * audio.duration;
+                audio.currentTime = (posA / 100) * audio.duration; // ドラッグに再生位置を同期
             } else {
                 posB = Math.max(val, posA + 1);
             }
             updateSeekStyle();
         };
+        const stop = () => {
+            dragging = false;
+            draggingA = false;
+        };
         el.addEventListener('mousedown', () => dragging = true);
-        el.addEventListener('touchstart', () => dragging = true);
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; });
         window.addEventListener('mousemove', move);
-        window.addEventListener('touchmove', move);
-        window.addEventListener('mouseup', () => dragging = false);
-        window.addEventListener('touchend', () => dragging = false);
+        window.addEventListener('touchmove', move, { passive: false });
+        window.addEventListener('mouseup', stop);
+        window.addEventListener('touchend', stop);
     }
 
     setupDraggable(markerA, true); 
