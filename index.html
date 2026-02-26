@@ -9,12 +9,6 @@
    <meta name="apple-mobile-web-app-capable" content="yes">
    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
-  <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('ZPN: Offline Mode Ready'));
-      }
-    </script>
     <style>
         :root {
             --neon-blue: #00f2ff;
@@ -74,7 +68,6 @@
         .thumb-box {
             width: 60px;
             height: 60px;
-            border: none;
             border-radius: 8px;
             overflow: hidden;
             display: flex; justify-content: center; align-items: center;
@@ -150,7 +143,6 @@
             font-size: 0.65rem; 
             font-weight: bold; 
             line-height: 1;
-            padding-top: 1px;
         }
         .btn-tempo { font-size: 0.6rem; }
         .btn-reset { width: 58px; }
@@ -201,7 +193,6 @@
         .btn-icon-s { font-size: 0.9rem; }
 
         .svg-icon { width: 1em; height: 1em; fill: currentColor; display: block; }
-        #btn-back-to-a .btn-icon { padding-top: 2px; padding-bottom: 0; }
 
         .container-tempo { display: flex; flex-direction: column; gap: 12px; }
         .tempo-controls { display: flex; justify-content: space-between; align-items: center; }
@@ -323,7 +314,7 @@
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
 
     let posA = 0; let posB = 100;
-    let draggingA = false; // A点操作フラグ
+    let draggingA = false;
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -332,7 +323,6 @@
         inner.classList.remove('scrolling-content');
         const oldClone = inner.querySelector('.marquee-clone');
         if (oldClone) inner.removeChild(oldClone);
-        
         if (inner.scrollWidth > box.clientWidth + 2) {
             const span = inner.querySelector('span');
             const clone = span.cloneNode(true);
@@ -347,20 +337,9 @@
         const playedColor = "var(--neon-blue)";
         const unplayedColor = "var(--loop-unplayed)";
         const outRangeColor = "var(--out-of-range)";
-        
-        seekBg.style.background = `linear-gradient(to right, 
-            ${outRangeColor} 0%, 
-            ${outRangeColor} ${posA}%, 
-            ${playedColor} ${posA}%, 
-            ${playedColor} ${current}%, 
-            ${unplayedColor} ${current}%, 
-            ${unplayedColor} ${posB}%, 
-            ${outRangeColor} ${posB}%, 
-            ${outRangeColor} 100%)`;
-        
+        seekBg.style.background = `linear-gradient(to right, ${outRangeColor} 0%, ${outRangeColor} ${posA}%, ${playedColor} ${posA}%, ${playedColor} ${current}%, ${unplayedColor} ${current}%, ${unplayedColor} ${posB}%, ${outRangeColor} ${posB}%, ${outRangeColor} 100%)`;
         markerA.style.left = posA + "%";
         markerB.style.left = posB + "%";
-        
         if (audio.duration) {
             document.getElementById('ab-range-text').innerText = `${formatTime((posA/100)*audio.duration)} - ${formatTime((posB/100)*audio.duration)}`;
         }
@@ -381,13 +360,9 @@
     let tempoInterval;
     function startTempoChange(delta) {
         updateTempo(parseInt(tempoSlider.value) + delta);
-        tempoInterval = setInterval(() => {
-            updateTempo(parseInt(tempoSlider.value) + delta);
-        }, 100);
+        tempoInterval = setInterval(() => updateTempo(parseInt(tempoSlider.value) + delta), 100);
     }
-    function stopTempoChange() {
-        clearInterval(tempoInterval);
-    }
+    function stopTempoChange() { clearInterval(tempoInterval); }
 
     document.getElementById('file-input').onchange = (e) => {
         const file = e.target.files[0];
@@ -398,7 +373,6 @@
         seek.value = 0;
         playIcon.innerHTML = ICON_PLAY; 
         updateTempo(100);
-        
         window.jsmediatags.read(file, {
             onSuccess: (tag) => {
                 const t = tag.tags;
@@ -410,7 +384,6 @@
                     document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
                     document.getElementById('jacket-img').style.display = 'block';
                 } else { document.getElementById('jacket-img').style.display = 'none'; }
-                
                 setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
             }
         });
@@ -422,24 +395,16 @@
         checkMarquee('artist-inner', 'artist-box');
     };
 
-    const btnMinus = document.getElementById('tempo-minus');
-    const btnPlus = document.getElementById('tempo-plus');
-    const btnReset = document.getElementById('tempo-reset');
-
-    btnMinus.addEventListener('mousedown', () => startTempoChange(-1));
-    btnMinus.addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(-1); });
-    btnPlus.addEventListener('mousedown', () => startTempoChange(1));
-    btnPlus.addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(1); });
-    window.addEventListener('mouseup', stopTempoChange);
+    document.getElementById('tempo-minus').addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(-1); });
+    document.getElementById('tempo-plus').addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(1); });
     window.addEventListener('touchend', stopTempoChange);
-    btnReset.onclick = () => updateTempo(100);
+    document.getElementById('tempo-reset').onclick = () => updateTempo(100);
+    tempoSlider.oninput = (e) => audio.playbackRate = e.target.value / 100;
 
-    tempoSlider.oninput = (e) => { audio.playbackRate = e.target.value / 100; };
-
+    // --- 修正：再生ボタンの挙動を強化 ---
     document.getElementById('btn-play').onclick = () => {
         if (audio.paused) { 
-            audio.play(); 
-            playIcon.innerHTML = ICON_PAUSE; 
+            audio.play().then(() => { playIcon.innerHTML = ICON_PAUSE; });
         } else { 
             audio.pause(); 
             playIcon.innerHTML = ICON_PLAY; 
@@ -447,10 +412,12 @@
     };
 
     audio.ontimeupdate = () => {
-        if (!audio.duration || draggingA) return; // A点操作中はループ判定をスキップ
+        if (!audio.duration || draggingA) return;
         const currentP = (audio.currentTime / audio.duration) * 100;
         if (currentP < posA || currentP >= posB) {
             audio.currentTime = (posA / 100) * audio.duration;
+            // ループ時に再生状態を維持する
+            if (!audio.paused) audio.play(); 
         }
         seek.value = (audio.currentTime / audio.duration) * 100;
         document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
@@ -470,8 +437,13 @@
         posB = (audio.currentTime / audio.duration) * 100; 
         updateSeekStyle(); 
     };
+    
+    // --- 修正：Aに戻った際にアイコンと再生状態を同期 ---
     document.getElementById('btn-back-to-a').onclick = () => { 
-        audio.currentTime = (posA / 100) * audio.duration; 
+        audio.currentTime = (posA / 100) * audio.duration;
+        if (!audio.paused) {
+            audio.play().then(() => { playIcon.innerHTML = ICON_PAUSE; });
+        }
     };
 
     function setupDraggable(el, isA) {
@@ -484,7 +456,7 @@
             if (isA) {
                 draggingA = true;
                 posA = Math.min(val, posB - 1);
-                audio.currentTime = (posA / 100) * audio.duration; // ドラッグに再生位置を同期
+                audio.currentTime = (posA / 100) * audio.duration;
             } else {
                 posB = Math.max(val, posA + 1);
             }
@@ -492,7 +464,11 @@
         };
         const stop = () => {
             dragging = false;
-            draggingA = false;
+            if (isA) {
+                draggingA = false;
+                // A点ドラッグ終了後に再生状態ならアイコンを合わせる
+                if (!audio.paused) playIcon.innerHTML = ICON_PAUSE;
+            }
         };
         el.addEventListener('mousedown', () => dragging = true);
         el.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; });
