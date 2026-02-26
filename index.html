@@ -216,7 +216,6 @@
             gap: 20px; 
             padding-bottom: 15px;
         }
-        /* 修正：ボタンをテンポバーの端(90%幅)に合わせる */
         .tempo-controls { 
             display: flex; 
             justify-content: space-between; 
@@ -261,7 +260,7 @@
                 <div class="marquee-box" id="artist-box" style="flex: 1;">
                     <div id="artist-inner" class="marquee-inner"><span id="artist-text">UNKNOWN ARTIST</span></div>
                 </div>
-                <button class="main-btn btn-select" onclick="document.getElementById('file-input').click()">選曲</button>
+                <button class="main-btn btn-select" id="btn-select-file">選曲</button>
             </div>
         </div>
         <div class="status-action-row">
@@ -325,13 +324,28 @@
     const markerB = document.getElementById('marker-b');
     const tempoSlider = document.getElementById('tempo-slider');
     const playIcon = document.getElementById('play-icon');
+    const fileInput = document.getElementById('file-input');
+    const btnSelect = document.getElementById('btn-select-file');
     
     const ICON_PLAY = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
 
     let posA = 0; let posB = 100;
     let isDragging = false;
+    let isFileOpening = false; // 二重発火防止フラグ
     const OFFSET_TIME = 0.3;
+
+    // 修正：選曲ボタンの連打防止処理
+    btnSelect.addEventListener('click', (e) => {
+        e.stopPropagation(); // イベントの伝播を止める
+        if (isFileOpening) return; // 処理中なら何もしない
+        
+        isFileOpening = true;
+        fileInput.click();
+        
+        // 500ms後にフラグをリセット（ダイアログが立ち上がるまでの猶予）
+        setTimeout(() => { isFileOpening = false; }, 500);
+    });
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -381,7 +395,7 @@
     }
     function stopTempoChange() { clearInterval(tempoInterval); }
 
-    document.getElementById('file-input').onchange = (e) => {
+    fileInput.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
         audio.src = URL.createObjectURL(file);
