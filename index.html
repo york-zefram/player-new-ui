@@ -199,11 +199,23 @@
             font-weight: bold; 
             display: flex; justify-content: center; align-items: center; z-index: 10; 
         }
-        .marker::after { content: ""; position: absolute; width: 2px; height: 15px; background: var(--neon-blue); left: 50%; transform: translateX(-50%); }
+
+        /* 白線の修正箇所 */
+        .marker::after { 
+            content: ""; 
+            position: absolute; 
+            width: 3px;          /* 太さは3pxを維持 */
+            height: 35px;         /* 長さを35pxに変更 */
+            background: #ffffff;  /* 色は白を維持 */
+            left: 50%; 
+            transform: translateX(-50%); 
+        }
+        
         #marker-a { top: -42px; transform: translateX(-50%); } 
-        #marker-a::after { bottom: -15px; }
+        #marker-a::after { bottom: -35px; } /* 長さに合わせて調整 */
+        
         #marker-b { bottom: -42px; transform: translateX(-50%); } 
-        #marker-b::after { top: -15px; }
+        #marker-b::after { top: -35px; }    /* 長さに合わせて調整 */
 
         .container-3 { 
             display: flex; 
@@ -372,12 +384,9 @@
         const inner = document.getElementById(innerId);
         const box = document.getElementById(boxId);
         if (!inner || !box) return;
-        
         inner.classList.remove('scrolling-content');
         const oldClone = inner.querySelector('.marquee-clone');
         if (oldClone) inner.removeChild(oldClone);
-        
-        // 選曲ボタンの手前までの幅（box.clientWidth）に対して判定
         if (inner.scrollWidth > box.clientWidth + 2) {
             const span = inner.querySelector('span');
             const clone = span.cloneNode(true);
@@ -426,7 +435,17 @@
         posA = 0; posB = 100;
         audio.currentTime = 0; 
         seek.value = 0;
-        playIcon.innerHTML = ICON_PLAY; 
+        
+        audio.oncanplaythrough = () => {
+            audio.play().then(() => {
+                playIcon.innerHTML = ICON_PAUSE;
+            }).catch(e => {
+                console.log("Auto-play blocked:", e);
+                playIcon.innerHTML = ICON_PLAY;
+            });
+            audio.oncanplaythrough = null;
+        };
+
         updateTempo(100);
         window.jsmediatags.read(file, {
             onSuccess: (tag) => {
@@ -439,20 +458,12 @@
                     document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
                     document.getElementById('jacket-img').style.display = 'block';
                 } else { document.getElementById('jacket-img').style.display = 'none'; }
-                
-                // ロード直後にタイトル・アーティスト両方のスクロールチェックを実行
-                setTimeout(() => { 
-                    checkMarquee('title-inner', 'title-box'); 
-                    checkMarquee('artist-inner', 'artist-box'); 
-                }, 100);
+                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
             },
             onError: () => {
                 document.getElementById('title-text').innerText = file.name;
                 document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
-                setTimeout(() => { 
-                    checkMarquee('title-inner', 'title-box'); 
-                    checkMarquee('artist-inner', 'artist-box'); 
-                }, 100);
+                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
             }
         });
         isFileOpening = false;
@@ -519,36 +530,35 @@
     function setupDraggable(el, isA) {
         let dragging = false;
         let lastVal = -1;
-
         const move = (e) => {
             if (!dragging) return;
             isDragging = true;
             const rect = seek.getBoundingClientRect();
             const x = (e.touches ? e.touches[0].clientX : e.clientX);
             let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
-            
             if (Math.abs(val - lastVal) < 0.05) return;
-            lastVal = lastVal;
-
             if (isA) {
                 posA = Math.min(val, posB - 1);
-                audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
-                seek.value = posA;
+                const currentHeadPos = (audio.currentTime / audio.duration) * 100;
+                
+                if (posA >= currentHeadPos - 0.5) {
+                    audio.muted = true; 
+                    audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
+                    seek.value = posA;
+                }
             } else {
                 posB = Math.max(val, posA + 1);
             }
+            lastVal = val;
             updateSeekStyle();
         };
-
         const stop = () => {
             if (dragging) {
                 dragging = false;
-                setTimeout(() => { 
-                    isDragging = false; 
-                }, 500);
+                audio.muted = false; 
+                setTimeout(() => { isDragging = false; }, 500);
             }
         };
-
         el.addEventListener('mousedown', () => dragging = true);
         el.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; }, {passive: false});
         window.addEventListener('mousemove', move);
