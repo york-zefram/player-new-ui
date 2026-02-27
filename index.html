@@ -412,11 +412,10 @@
         if (isFileOpening) return;
         isFileOpening = true;
         
-        // iOS対策：タップの瞬間にオーディオを有効化
+        // iOS対策：タップの瞬間にのみオーディオをロード
         audio.load();
-        audio.play().then(() => { audio.pause(); }).catch(() => {});
-        
         fileInput.click();
+        
         setTimeout(() => { isFileOpening = false; }, 1000); 
     });
 
@@ -435,38 +434,44 @@
         audio.currentTime = 0; 
         seek.value = 0;
 
-        // メタデータが取得できるまで待つ
-        audio.oncanplaythrough = () => {
+        // ガードレール：0.5秒経ってもイベントが来なければ強制的にREADYを出す
+        let forcedReady = setTimeout(() => { showReadyUI(); }, 500);
+
+        function showReadyUI() {
+            clearTimeout(forcedReady);
             loadingSpinner.style.display = 'none';
             tapToStart.style.display = 'block';
-            audio.oncanplaythrough = null;
+            
+            // READYが出た後にゆっくりタグ解析を開始
+            setTimeout(() => {
+                window.jsmediatags.read(file, {
+                    onSuccess: (tag) => {
+                        const t = tag.tags;
+                        document.getElementById('title-text').innerText = t.title || file.name;
+                        document.getElementById('artist-text').innerText = t.artist || "UNKNOWN ARTIST";
+                        if (t.picture) {
+                            let base = "";
+                            for (let i = 0; i < t.picture.data.length; i++) base += String.fromCharCode(t.picture.data[i]);
+                            document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
+                            document.getElementById('jacket-img').style.display = 'block';
+                        } else { document.getElementById('jacket-img').style.display = 'none'; }
+                        setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+                    },
+                    onError: () => {
+                        document.getElementById('title-text').innerText = file.name;
+                        document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
+                        setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+                    }
+                });
+            }, 300);
+        }
+
+        audio.onloadeddata = () => {
+            showReadyUI();
+            audio.onloadeddata = null;
         };
 
         updateTempo(100);
-        
-        // 解析処理を非同期で走らせ、フリーズを防止
-        setTimeout(() => {
-            window.jsmediatags.read(file, {
-                onSuccess: (tag) => {
-                    const t = tag.tags;
-                    document.getElementById('title-text').innerText = t.title || file.name;
-                    document.getElementById('artist-text').innerText = t.artist || "UNKNOWN ARTIST";
-                    if (t.picture) {
-                        let base = "";
-                        for (let i = 0; i < t.picture.data.length; i++) base += String.fromCharCode(t.picture.data[i]);
-                        document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
-                        document.getElementById('jacket-img').style.display = 'block';
-                    } else { document.getElementById('jacket-img').style.display = 'none'; }
-                    setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
-                },
-                onError: () => {
-                    document.getElementById('title-text').innerText = file.name;
-                    document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
-                    setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
-                }
-            });
-        }, 100);
-
         isFileOpening = false;
     };
 
