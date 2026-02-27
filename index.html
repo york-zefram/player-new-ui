@@ -207,23 +207,33 @@
         .seek-wrapper, .tempo-slider-wrapper { position: relative; width: 90%; height: 10px; display: flex; align-items: center; margin: 0 auto; }
         .seek-bg-layer { position: absolute; width: 100%; height: 6px; background: var(--out-of-range); border-radius: 3px; z-index: 1; overflow: hidden; }
         
-        input[type="range"]#main-seek, input[type="range"]#tempo-slider { -webkit-appearance: none; width: 100%; background: transparent; position: relative; z-index: 5; margin: 0; }
+        /* 当たり判定の拡大 */
+        input[type="range"]#main-seek, input[type="range"]#tempo-slider { 
+            -webkit-appearance: none; 
+            width: 100%; 
+            background: transparent; 
+            position: relative; 
+            z-index: 5; 
+            margin: 0; 
+            height: 40px; /* タッチ領域を縦に拡大 */
+        }
         
         input[type="range"]#main-seek::-webkit-slider-thumb, 
         input[type="range"]#tempo-slider::-webkit-slider-thumb { 
             -webkit-appearance: none; 
-            height: 24px; 
-            width: 24px; 
+            height: 30px; /* デザインを損なわない程度に少し拡大 */
+            width: 30px; 
             border-radius: 50%; 
             background: #fff; 
             box-shadow: 0 0 12px var(--neon-blue); 
             margin-top: 0px; 
+            cursor: pointer;
         }
 
         .marker { 
             position: absolute; 
-            width: 26px;  
-            height: 26px; 
+            width: 36px;  /* 26px -> 36px 当たり判定拡大 */
+            height: 36px; 
             border-radius: 50%; 
             border: 2px solid var(--neon-blue); background: var(--bg-black); 
             color: var(--neon-blue); 
@@ -242,9 +252,9 @@
             transform: translateX(-50%); 
         }
         
-        #marker-a { top: -42px; transform: translateX(-50%); } 
+        #marker-a { top: -48px; transform: translateX(-50%); } 
         #marker-a::after { bottom: -35px; } 
-        #marker-b { bottom: -42px; transform: translateX(-50%); } 
+        #marker-b { bottom: -48px; transform: translateX(-50%); } 
         #marker-b::after { top: -35px; }    
 
         .container-3 { 
@@ -411,11 +421,8 @@
         e.stopPropagation();
         if (isFileOpening) return;
         isFileOpening = true;
-        
-        // iOS対策：タップの瞬間にのみオーディオをロード
         audio.load();
         fileInput.click();
-        
         setTimeout(() => { isFileOpening = false; }, 1000); 
     });
 
@@ -434,7 +441,6 @@
         audio.currentTime = 0; 
         seek.value = 0;
 
-        // ガードレール：0.5秒経ってもイベントが来なければ強制的にREADYを出す
         let forcedReady = setTimeout(() => { showReadyUI(); }, 500);
 
         function showReadyUI() {
@@ -442,7 +448,6 @@
             loadingSpinner.style.display = 'none';
             tapToStart.style.display = 'block';
             
-            // READYが出た後にゆっくりタグ解析を開始
             setTimeout(() => {
                 window.jsmediatags.read(file, {
                     onSuccess: (tag) => {
@@ -581,6 +586,7 @@
         playIcon.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
     };
 
+    // ドラッグ処理の感度向上 (当たり判定計算の最適化)
     function setupDraggable(el, isA) {
         let dragging = false;
         let lastVal = -1;
@@ -589,18 +595,20 @@
             isDragging = true;
             const rect = seek.getBoundingClientRect();
             const x = (e.touches ? e.touches[0].clientX : e.clientX);
+            
+            // 遊びを削り、よりリニアに計算
             let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
-            if (Math.abs(val - lastVal) < 0.05) return;
+            
             if (isA) {
-                posA = Math.min(val, posB - 1);
+                posA = Math.min(val, posB - 0.5); // 最小間隔を詰めて感度UP
                 const currentHeadPos = (audio.currentTime / audio.duration) * 100;
-                if (posA >= currentHeadPos - 0.5) {
+                if (posA >= currentHeadPos - 0.2) {
                     audio.muted = true; 
                     audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
                     seek.value = posA;
                 }
             } else {
-                posB = Math.max(val, posA + 1);
+                posB = Math.max(val, posA + 0.5);
             }
             lastVal = val;
             updateSeekStyle();
@@ -609,7 +617,7 @@
             if (dragging) {
                 dragging = false;
                 audio.muted = false; 
-                setTimeout(() => { isDragging = false; }, 500);
+                setTimeout(() => { isDragging = false; }, 200); // 復帰までの待機時間を短縮
             }
         };
         el.addEventListener('mousedown', () => dragging = true);
