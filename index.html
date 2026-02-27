@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ZEFRAM PLAYER NEO</title>
+    <meta name="apple-mobile-web-app-title" content="ZPN">
+    <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
@@ -19,44 +21,71 @@
             --loop-unplayed: #b0b0b0;
         }
 
-        html, body {
+        body {
             background-color: var(--bg-black);
+            color: #fff;
+            font-family: var(--font-main);
             margin: 0;
-            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            position: fixed;
-            top: 0;
-            left: 0;
+            touch-action: none; 
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* SEの「下に押し出される現象」を解決するコンテナ */
-        .player-wrapper {
+        #loading-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh; /* 画面全体の高さを強制確保 */
-            padding: 30px 10px 15px 10px; /* 下部余白をSE用に調整 */
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(8, 8, 8, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(0, 242, 255, 0.2);
+            border-top: 4px solid var(--neon-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 15px var(--neon-blue-glow);
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #tap-to-start {
+            display: none;
+            color: var(--neon-blue);
+            font-weight: bold;
+            border: 2px solid var(--neon-blue);
+            padding: 15px 30px;
+            border-radius: 30px;
+            box-shadow: 0 0 20px var(--neon-blue-glow);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        .player-wrapper {
+            width: 100%;
+            max-width: 100%; 
+            padding: 30px 10px 10px 10px; 
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            box-sizing: border-box;
-            background-color: var(--bg-black);
-            z-index: 10;
+            gap: 6px;
         }
 
-        /* iPhone SE（第1世代）等のホームボタン機種向け：ステータスバー分を上に引き戻す */
-        @media screen and (max-device-width: 320px) {
-            .player-wrapper {
-                height: calc(100vh + 20px);
-                margin-top: -20px;
-                padding-top: 25px; /* 上が詰まりすぎないよう調整 */
-            }
-        }
-
-        /* 以下、デザイン・ボタンサイズ等は一切変更なし */
         section, header.glass-header {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
@@ -67,14 +96,14 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
-        header.glass-header { text-align: center; flex-shrink: 0; }
-        .app-title { margin: 0; color: var(--neon-blue); font-size: 0.95rem; letter-spacing: 1px; text-shadow: 0 0 10px var(--neon-blue-glow); }
+        header.glass-header { text-align: center; }
+        .app-title { margin: 0; color: var(--neon-blue); font-size: 1.0rem; letter-spacing: 1px; text-shadow: 0 0 10px var(--neon-blue-glow); }
 
-        .info-header { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; flex-shrink: 0; }
+        .info-header { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
         
         .thumb-box {
-            width: 55px; /* SEサイズに合わせて微調整 */
-            height: 55px;
+            width: 60px;
+            height: 60px;
             border-radius: 8px;
             overflow: hidden;
             display: flex; justify-content: center; align-items: center;
@@ -85,11 +114,11 @@
 
         .text-fields { 
             flex: 1; 
-            height: 55px;
+            height: 60px;
             display: flex; 
             flex-direction: column; 
             justify-content: center; 
-            gap: 2px;
+            gap: 4px;
             overflow: hidden;
         }
 
@@ -104,26 +133,27 @@
         }
         .scrolling-content { display: inline-block; padding-right: 50px; animation: scroll-slow 15s linear infinite; }
 
-        #title-text { font-weight: bold; font-size: 0.8rem; line-height: 1.2; }
+        #title-text { font-weight: bold; font-size: 0.85rem; line-height: 1.2; }
         .artist-row { display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%; }
-        #artist-text { font-size: 0.65rem; color: var(--neon-blue); line-height: 1.2; }
+        #artist-text { font-size: 0.7rem; color: var(--neon-blue); line-height: 1.2; }
         
         .status-action-row { 
             width: 100%; 
             display: flex; 
             justify-content: center; 
-            padding-top: 4px; 
+            margin-top: 0px; 
+            padding-top: 6px; 
             border-top: 1px solid rgba(255, 255, 255, 0.15); 
         }
         .time-group { 
             display: flex; 
-            gap: 10px;
+            gap: 12px;
             font-family: monospace; 
             line-height: 1; 
             white-space: nowrap;
         }
-        #time-display { color: #fff; font-size: 1.0rem; font-weight: bold; }
-        #ab-range-text { color: var(--neon-blue); font-size: 1.0rem; font-weight: bold; }
+        #time-display { color: #fff; font-size: 1.1rem; font-weight: bold; }
+        #ab-range-text { color: var(--neon-blue); font-size: 1.1rem; font-weight: bold; }
 
         .main-btn {
             border: 1px solid var(--glass-border);
@@ -146,38 +176,38 @@
         .btn-small:active { transform: translateY(-12px) scale(0.92); }
         
         .btn-select { 
-            width: 50px; 
-            height: 26px; 
-            border-radius: 13px; 
-            font-size: 0.7rem; 
+            width: 60px; 
+            height: 30px; 
+            border-radius: 15px; 
+            font-size: 0.75rem; 
             font-weight: bold; 
             line-height: 1;
         }
         
         .btn-tempo { 
-            width: 55px; 
-            height: 28px; 
-            border-radius: 14px; 
-            font-size: 0.7rem; 
+            width: 60px; 
+            height: 30px; 
+            border-radius: 15px; 
+            font-size: 0.75rem; 
             font-weight: bold; 
             line-height: 1;
         }
 
-        #tempo-minus, #tempo-plus { font-size: 1.1rem; font-weight: bold; }
+        #tempo-minus, #tempo-plus { font-size: 1.2rem; font-weight: bold; }
 
         .btn-round { border-radius: 50%; }
         .btn-neon-border { border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue-glow); }
 
         .container-2 { 
             position: relative; 
-            height: 80px; 
+            height: 100px; 
             display: flex; 
             align-items: center; 
-            flex-shrink: 0;
         }
         .seek-wrapper, .tempo-slider-wrapper { position: relative; width: 90%; height: 10px; display: flex; align-items: center; margin: 0 auto; }
         .seek-bg-layer { position: absolute; width: 100%; height: 6px; background: var(--out-of-range); border-radius: 3px; z-index: 1; overflow: hidden; }
         
+        /* 透明な操作レイヤーを広げて感度を確保 */
         input[type="range"]#main-seek, input[type="range"]#tempo-slider { 
             -webkit-appearance: none; 
             width: 100%; 
@@ -185,11 +215,11 @@
             position: relative; 
             z-index: 5; 
             margin: 0; 
-            height: 40px; 
+            height: 50px; /* 見えない操作領域 */
             outline: none;
         }
         
-        /* 24pxを厳守 */
+        /* 元のスマートなサイズ(24px)に戻す */
         input[type="range"]#main-seek::-webkit-slider-thumb, 
         input[type="range"]#tempo-slider::-webkit-slider-thumb { 
             -webkit-appearance: none; 
@@ -202,7 +232,7 @@
             cursor: pointer;
         }
 
-        /* 26pxを厳守 */
+        /* マーカーも元の26pxに復元 */
         .marker { 
             position: absolute; 
             width: 26px;  
@@ -210,16 +240,17 @@
             border-radius: 50%; 
             border: 2px solid var(--neon-blue); background: var(--bg-black); 
             color: var(--neon-blue); 
-            font-size: 11px; 
+            font-size: 12px; 
             font-weight: bold; 
             display: flex; justify-content: center; align-items: center; z-index: 10; 
         }
         
+        /* 見えない当たり判定をマーカー周囲に付加 */
         .marker::before {
             content: "";
             position: absolute;
-            width: 44px;
-            height: 44px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: transparent;
         }
@@ -227,40 +258,39 @@
         .marker::after { 
             content: ""; 
             position: absolute; 
-            width: 2px;          
-            height: 25px;         
+            width: 3px;          
+            height: 35px;         
             background: #ffffff;  
             left: 50%; 
             transform: translateX(-50%); 
         }
         
-        #marker-a { top: -32px; transform: translateX(-50%); } 
-        #marker-a::after { bottom: -25px; } 
-        #marker-b { bottom: -32px; transform: translateX(-50%); } 
-        #marker-b::after { top: -25px; }    
+        /* 位置を元のバランスに復元 */
+        #marker-a { top: -42px; transform: translateX(-50%); } 
+        #marker-a::after { bottom: -35px; } 
+        #marker-b { bottom: -42px; transform: translateX(-50%); } 
+        #marker-b::after { top: -35px; }    
 
         .container-3 { 
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            gap: 12px; 
-            padding: 4px; 
-            min-height: 90px; 
-            flex-shrink: 0;
+            gap: 10px; 
+            padding: 6px 6px; 
+            min-height: 100px; 
         }
-        .btn-large { width: 64px; height: 64px; transform: translateY(10px); }
-        .btn-small { width: 38px; height: 38px; transform: translateY(-20px); }
-        .btn-icon { font-size: 2.0rem; }
-        .btn-icon-s { font-size: 0.8rem; }
+        .btn-large { width: 70px; height: 70px; transform: translateY(12px); }
+        .btn-small { width: 40px; height: 40px; transform: translateY(-25px); }
+        .btn-icon { font-size: 2.2rem; }
+        .btn-icon-s { font-size: 0.9rem; }
 
         .svg-icon { width: 1em; height: 1em; fill: currentColor; display: block; }
 
         .container-tempo { 
             display: flex; 
             flex-direction: column; 
-            gap: 12px; 
-            padding: 8px 10px 10px 10px; 
-            flex-shrink: 0;
+            gap: 20px; 
+            padding: 8px 10px 8px 10px;
         }
         .tempo-controls { 
             display: flex; 
@@ -277,40 +307,23 @@
             justify-content: space-between;
             color: var(--neon-blue);
             font-family: monospace;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: bold;
             opacity: 0.8;
-            margin-top: -6px;
+            margin-top: -8px;
             padding: 0 5%; 
         }
-
-        #loading-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(8, 8, 8, 0.85);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-        }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid rgba(0, 242, 255, 0.2);
-            border-top: 4px solid var(--neon-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tempo-labels span { width: 33%; }
+        .tempo-labels .label-l { text-align: left; }
+        .tempo-labels .label-c { text-align: center; }
+        .tempo-labels .label-r { text-align: right; }
     </style>
 </head>
 <body>
 
 <div id="loading-overlay">
     <div class="spinner" id="loading-spinner"></div>
-    <div id="tap-to-start" style="color:var(--neon-blue); font-weight:bold; border:2px solid var(--neon-blue); padding:10px 20px; border-radius:20px;">READY</div>
+    <div id="tap-to-start">READY</div>
 </div>
 
 <div class="player-wrapper">
@@ -375,9 +388,9 @@
             <input type="range" id="tempo-slider" min="50" max="150" step="1" value="100">
         </div>
         <div class="tempo-labels">
-            <span style="text-align:left; width:33%">-50%</span>
-            <span style="text-align:center; width:33%">0%</span>
-            <span style="text-align:right; width:33%">+50%</span>
+            <span class="label-l">-50%</span>
+            <span class="label-c">0%</span>
+            <span class="label-r">+50%</span>
         </div>
     </section>
 </div>
@@ -385,7 +398,6 @@
 <audio id="audio"></audio>
 
 <script>
-    /* スクリプトは以前のものを継承 */
     const audio = document.getElementById('audio');
     const seek = document.getElementById('main-seek');
     const seekBg = document.getElementById('seek-bg');
@@ -409,42 +421,77 @@
 
     function startSequence() {
         loadingOverlay.style.display = 'none';
-        audio.play().then(() => { playIcon.innerHTML = ICON_PAUSE; }).catch(err => { console.log(err); });
+        audio.play().then(() => {
+            playIcon.innerHTML = ICON_PAUSE;
+        }).catch(err => { console.log("Play failed:", err); });
     }
 
-    tapToStart.onclick = (e) => { e.stopPropagation(); startSequence(); };
-    btnSelect.onclick = (e) => { e.stopPropagation(); if(isFileOpening) return; isFileOpening=true; audio.load(); fileInput.click(); setTimeout(()=>isFileOpening=false,1000); };
+    tapToStart.onclick = (e) => {
+        e.stopPropagation();
+        startSequence();
+    };
+
+    btnSelect.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isFileOpening) return;
+        isFileOpening = true;
+        audio.load();
+        fileInput.click();
+        setTimeout(() => { isFileOpening = false; }, 1000); 
+    });
 
     fileInput.onchange = (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) { isFileOpening = false; return; }
+        
         loadingOverlay.style.display = 'flex';
         loadingSpinner.style.display = 'block';
         tapToStart.style.display = 'none';
+
+        audio.pause();
         const fileUrl = URL.createObjectURL(file);
         audio.src = fileUrl;
         posA = 0; posB = 100;
-        audio.currentTime = 0;
-        window.jsmediatags.read(file, {
-            onSuccess: (tag) => {
-                const t = tag.tags;
-                document.getElementById('title-text').innerText = t.title || file.name;
-                document.getElementById('artist-text').innerText = t.artist || "UNKNOWN";
-                if (t.picture) {
-                    let base = "";
-                    for (let i = 0; i < t.picture.data.length; i++) base += String.fromCharCode(t.picture.data[i]);
-                    document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
-                    document.getElementById('jacket-img').style.display = 'block';
-                } else { document.getElementById('jacket-img').style.display = 'none'; }
-                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
-            },
-            onError: () => {
-                document.getElementById('title-text').innerText = file.name;
-                setTimeout(() => { checkMarquee('title-inner', 'title-box'); }, 100);
-            }
-        });
-        audio.onloadeddata = () => { loadingSpinner.style.display='none'; tapToStart.style.display='block'; };
+        audio.currentTime = 0; 
+        seek.value = 0;
+
+        let forcedReady = setTimeout(() => { showReadyUI(); }, 500);
+
+        function showReadyUI() {
+            clearTimeout(forcedReady);
+            loadingSpinner.style.display = 'none';
+            tapToStart.style.display = 'block';
+            
+            setTimeout(() => {
+                window.jsmediatags.read(file, {
+                    onSuccess: (tag) => {
+                        const t = tag.tags;
+                        document.getElementById('title-text').innerText = t.title || file.name;
+                        document.getElementById('artist-text').innerText = t.artist || "UNKNOWN ARTIST";
+                        if (t.picture) {
+                            let base = "";
+                            for (let i = 0; i < t.picture.data.length; i++) base += String.fromCharCode(t.picture.data[i]);
+                            document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
+                            document.getElementById('jacket-img').style.display = 'block';
+                        } else { document.getElementById('jacket-img').style.display = 'none'; }
+                        setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+                    },
+                    onError: () => {
+                        document.getElementById('title-text').innerText = file.name;
+                        document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
+                        setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+                    }
+                });
+            }, 300);
+        }
+
+        audio.onloadeddata = () => {
+            showReadyUI();
+            audio.onloadeddata = null;
+        };
+
         updateTempo(100);
+        isFileOpening = false;
     };
 
     function checkMarquee(innerId, boxId) {
@@ -465,64 +512,140 @@
 
     function updateSeekStyle() {
         const current = (audio.currentTime / audio.duration * 100) || 0;
-        seekBg.style.background = `linear-gradient(to right, var(--out-of-range) 0%, var(--out-of-range) ${posA}%, var(--neon-blue) ${posA}%, var(--neon-blue) ${current}%, var(--loop-unplayed) ${current}%, var(--loop-unplayed) ${posB}%, var(--out-of-range) ${posB}%, var(--out-of-range) 100%)`;
+        const playedColor = "var(--neon-blue)";
+        const unplayedColor = "var(--loop-unplayed)";
+        const outRangeColor = "var(--out-of-range)";
+        seekBg.style.background = `linear-gradient(to right, ${outRangeColor} 0%, ${outRangeColor} ${posA}%, ${playedColor} ${posA}%, ${playedColor} ${current}%, ${unplayedColor} ${current}%, ${unplayedColor} ${posB}%, ${outRangeColor} ${posB}%, ${outRangeColor} 100%)`;
         markerA.style.left = posA + "%";
         markerB.style.left = posB + "%";
-        if (audio.duration) document.getElementById('ab-range-text').innerText = `${formatTime((posA/100)*audio.duration)}▶${formatTime((posB/100)*audio.duration)}`;
+        if (audio.duration) {
+            document.getElementById('ab-range-text').innerText = `${formatTime((posA/100)*audio.duration)}▶${formatTime((posB/100)*audio.duration)}`;
+        }
     }
 
-    function formatTime(s) { if(isNaN(s)) return "00:00"; const m=Math.floor(s/60); const sc=Math.floor(s%60); return `${m.toString().padStart(2,'0')}:${sc.toString().padStart(2,'0')}`; }
-    function updateTempo(val) { const nt=Math.max(50,Math.min(150,val)); tempoSlider.value=nt; audio.playbackRate=nt/100; }
+    function formatTime(s) {
+        if (isNaN(s)) return "00:00";
+        const m = Math.floor(s / 60); const scale = Math.floor(s % 60);
+        return `${m.toString().padStart(2, '0')}:${scale.toString().padStart(2, '0')}`;
+    }
+
+    function updateTempo(val) {
+        const newTempo = Math.max(50, Math.min(150, val));
+        tempoSlider.value = newTempo;
+        audio.playbackRate = newTempo / 100;
+    }
 
     let tempoInterval;
-    function startTempoChange(delta) { updateTempo(parseInt(tempoSlider.value)+delta); tempoInterval=setInterval(()=>updateTempo(parseInt(tempoSlider.value)+delta),100); }
+    function startTempoChange(delta) {
+        updateTempo(parseInt(tempoSlider.value) + delta);
+        tempoInterval = setInterval(() => updateTempo(parseInt(tempoSlider.value) + delta), 100);
+    }
     function stopTempoChange() { clearInterval(tempoInterval); }
 
-    document.getElementById('tempo-minus').ontouchstart = (e) => { e.preventDefault(); startTempoChange(-1); };
-    document.getElementById('tempo-plus').ontouchstart = (e) => { e.preventDefault(); startTempoChange(1); };
-    window.ontouchend = stopTempoChange;
+    audio.onloadedmetadata = () => { 
+        updateSeekStyle();
+        checkMarquee('title-inner', 'title-box');
+        checkMarquee('artist-inner', 'artist-box');
+    };
+
+    document.getElementById('tempo-minus').addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(-1); });
+    document.getElementById('tempo-plus').addEventListener('touchstart', (e) => { e.preventDefault(); startTempoChange(1); });
+    window.addEventListener('touchend', stopTempoChange);
     document.getElementById('tempo-reset').onclick = () => updateTempo(100);
     tempoSlider.oninput = (e) => audio.playbackRate = e.target.value / 100;
 
     document.getElementById('btn-play').onclick = () => {
-        if (audio.paused) { audio.play().then(() => { playIcon.innerHTML = ICON_PAUSE; }); }
-        else { audio.pause(); playIcon.innerHTML = ICON_PLAY; }
+        if (audio.paused) { 
+            audio.play().then(() => { playIcon.innerHTML = ICON_PAUSE; });
+        } else { 
+            audio.pause(); 
+            playIcon.innerHTML = ICON_PLAY; 
+        }
     };
 
     audio.ontimeupdate = () => {
         if (!audio.duration || isDragging) return;
-        const cp = (audio.currentTime / audio.duration) * 100;
-        if (cp < posA - 0.05 || cp >= posB) audio.currentTime = ((posA/100)*audio.duration)+OFFSET_TIME;
-        seek.value = cp;
+        const currentP = (audio.currentTime / audio.duration) * 100;
+        if (currentP < posA - 0.05 || currentP >= posB) {
+            audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
+        }
+        seek.value = (audio.currentTime / audio.duration) * 100;
         document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)}/${formatTime(audio.duration)}`;
         updateSeekStyle();
     };
 
-    seek.oninput = (e) => { isDragging=true; audio.currentTime=(e.target.value/100)*audio.duration; updateSeekStyle(); };
-    seek.onchange = () => { isDragging=false; };
+    seek.oninput = (e) => { 
+        isDragging = true;
+        audio.currentTime = (e.target.value / 100) * audio.duration; 
+        updateSeekStyle(); 
+    };
+    seek.onchange = () => { 
+        isDragging = false; 
+        const cp = (audio.currentTime / audio.duration) * 100;
+        if (cp < posA) audio.currentTime = ((posA / 100) * audio.duration) + 0.1;
+    };
 
-    document.getElementById('btn-set-a').onclick = () => { posA=(audio.currentTime/audio.duration)*100; updateSeekStyle(); };
-    document.getElementById('btn-set-b').onclick = () => { posB=(audio.currentTime/audio.duration)*100; updateSeekStyle(); };
-    document.getElementById('btn-back-to-a').onclick = () => { if(!audio.duration)return; audio.currentTime=((posA/100)*audio.duration)+OFFSET_TIME; };
+    document.getElementById('btn-set-a').onclick = () => { 
+        posA = (audio.currentTime / audio.duration) * 100; 
+        updateSeekStyle(); 
+    };
+    document.getElementById('btn-set-b').onclick = () => { 
+        posB = (audio.currentTime / audio.duration) * 100; 
+        updateSeekStyle(); 
+    };
+    
+    document.getElementById('btn-back-to-a').onclick = () => { 
+        if (!audio.duration) return;
+        audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
+        playIcon.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
+    };
 
     function setupDraggable(el, isA) {
         let dragging = false;
+        let lastVal = -1;
         const move = (e) => {
             if (!dragging) return;
             isDragging = true;
             const rect = seek.getBoundingClientRect();
             const x = (e.touches ? e.touches[0].clientX : e.clientX);
             let val = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
-            if (isA) { posA = Math.min(val, posB - 0.5); } else { posB = Math.max(val, posA + 0.5); }
+            if (isA) {
+                posA = Math.min(val, posB - 0.5);
+                const currentHeadPos = (audio.currentTime / audio.duration) * 100;
+                if (posA >= currentHeadPos - 0.2) {
+                    audio.muted = true; 
+                    audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
+                    seek.value = posA;
+                }
+            } else {
+                posB = Math.max(val, posA + 0.5);
+            }
+            lastVal = val;
             updateSeekStyle();
         };
-        const stop = () => { if (dragging) { dragging = false; setTimeout(() => { isDragging = false; }, 200); } };
-        el.ontouchstart = (e) => { e.preventDefault(); dragging = true; };
+        const stop = () => {
+            if (dragging) {
+                dragging = false;
+                audio.muted = false; 
+                setTimeout(() => { isDragging = false; }, 200);
+            }
+        };
+        el.addEventListener('mousedown', () => dragging = true);
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; }, {passive: false});
+        window.addEventListener('mousemove', move);
         window.addEventListener('touchmove', move, { passive: false });
+        window.addEventListener('mouseup', stop);
         window.addEventListener('touchend', stop);
     }
-    setupDraggable(markerA, true); setupDraggable(markerB, false);
-    window.onload = () => { updateSeekStyle(); checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); };
+
+    setupDraggable(markerA, true); 
+    setupDraggable(markerB, false);
+    
+    window.onload = () => {
+        updateSeekStyle();
+        checkMarquee('title-inner', 'title-box');
+        checkMarquee('artist-inner', 'artist-box');
+    };
 </script>
 </body>
 </html>
