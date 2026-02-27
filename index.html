@@ -353,11 +353,10 @@
     let isFileOpening = false; 
     const OFFSET_TIME = 0.3;
 
-    // --- iOS 復帰対策 ---
     window.addEventListener('pageshow', () => {
-        isFileOpening = false; // 強制リセット
+        isFileOpening = false; 
         if (audio.src && !audio.paused) {
-            audio.play().catch(() => {}); // 再接続
+            audio.play().catch(() => {}); 
         }
     });
 
@@ -366,16 +365,19 @@
         if (isFileOpening) return;
         isFileOpening = true;
         fileInput.click();
-        setTimeout(() => { isFileOpening = false; }, 1000); // 余裕を持って長めに設定
+        setTimeout(() => { isFileOpening = false; }, 1000); 
     });
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
         const box = document.getElementById(boxId);
         if (!inner || !box) return;
+        
         inner.classList.remove('scrolling-content');
         const oldClone = inner.querySelector('.marquee-clone');
         if (oldClone) inner.removeChild(oldClone);
+        
+        // 選曲ボタンの手前までの幅（box.clientWidth）に対して判定
         if (inner.scrollWidth > box.clientWidth + 2) {
             const span = inner.querySelector('span');
             const clone = span.cloneNode(true);
@@ -437,12 +439,20 @@
                     document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
                     document.getElementById('jacket-img').style.display = 'block';
                 } else { document.getElementById('jacket-img').style.display = 'none'; }
-                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+                
+                // ロード直後にタイトル・アーティスト両方のスクロールチェックを実行
+                setTimeout(() => { 
+                    checkMarquee('title-inner', 'title-box'); 
+                    checkMarquee('artist-inner', 'artist-box'); 
+                }, 100);
             },
             onError: () => {
                 document.getElementById('title-text').innerText = file.name;
                 document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
-                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+                setTimeout(() => { 
+                    checkMarquee('title-inner', 'title-box'); 
+                    checkMarquee('artist-inner', 'artist-box'); 
+                }, 100);
             }
         });
         isFileOpening = false;
