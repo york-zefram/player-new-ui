@@ -41,6 +41,41 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(8, 8, 8, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(0, 242, 255, 0.2);
+            border-top: 4px solid var(--neon-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 15px var(--neon-blue-glow);
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #tap-to-start {
+            display: none;
+            color: var(--neon-blue);
+            font-weight: bold;
+            border: 2px solid var(--neon-blue);
+            padding: 15px 30px;
+            border-radius: 30px;
+            box-shadow: 0 0 20px var(--neon-blue-glow);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
         .player-wrapper {
             width: 100%;
             max-width: 100%; 
@@ -158,10 +193,7 @@
             line-height: 1;
         }
 
-        #tempo-minus, #tempo-plus {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
+        #tempo-minus, #tempo-plus { font-size: 1.2rem; font-weight: bold; }
 
         .btn-round { border-radius: 50%; }
         .btn-neon-border { border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue-glow); }
@@ -200,22 +232,20 @@
             display: flex; justify-content: center; align-items: center; z-index: 10; 
         }
 
-        /* 白線の修正箇所 */
         .marker::after { 
             content: ""; 
             position: absolute; 
-            width: 3px;          /* 太さは3pxを維持 */
-            height: 35px;         /* 長さを35pxに変更 */
-            background: #ffffff;  /* 色は白を維持 */
+            width: 3px;          
+            height: 35px;         
+            background: #ffffff;  
             left: 50%; 
             transform: translateX(-50%); 
         }
         
         #marker-a { top: -42px; transform: translateX(-50%); } 
-        #marker-a::after { bottom: -35px; } /* 長さに合わせて調整 */
-        
+        #marker-a::after { bottom: -35px; } 
         #marker-b { bottom: -42px; transform: translateX(-50%); } 
-        #marker-b::after { top: -35px; }    /* 長さに合わせて調整 */
+        #marker-b::after { top: -35px; }    
 
         .container-3 { 
             display: flex; 
@@ -225,16 +255,8 @@
             padding: 6px 6px; 
             min-height: 100px; 
         }
-        .btn-large { 
-            width: 70px; 
-            height: 70px; 
-            transform: translateY(12px); 
-        }
-        .btn-small { 
-            width: 40px; 
-            height: 40px; 
-            transform: translateY(-25px); 
-        }
+        .btn-large { width: 70px; height: 70px; transform: translateY(12px); }
+        .btn-small { width: 40px; height: 40px; transform: translateY(-25px); }
         .btn-icon { font-size: 2.2rem; }
         .btn-icon-s { font-size: 0.9rem; }
 
@@ -274,6 +296,11 @@
     </style>
 </head>
 <body>
+
+<div id="loading-overlay">
+    <div class="spinner" id="loading-spinner"></div>
+    <div id="tap-to-start">READY</div>
+</div>
 
 <div class="player-wrapper">
     <header class="glass-header">
@@ -356,6 +383,9 @@
     const playIcon = document.getElementById('play-icon');
     const fileInput = document.getElementById('file-input');
     const btnSelect = document.getElementById('btn-select-file');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const tapToStart = document.getElementById('tap-to-start');
     
     const ICON_PLAY = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
@@ -365,12 +395,18 @@
     let isFileOpening = false; 
     const OFFSET_TIME = 0.3;
 
-    window.addEventListener('pageshow', () => {
-        isFileOpening = false; 
-        if (audio.src && !audio.paused) {
-            audio.play().catch(() => {}); 
-        }
-    });
+    // 再生シーケンス：即座に再生
+    function startSequence() {
+        loadingOverlay.style.display = 'none';
+        audio.play().then(() => {
+            playIcon.innerHTML = ICON_PAUSE;
+        }).catch(err => { console.log("Play failed:", err); });
+    }
+
+    tapToStart.onclick = (e) => {
+        e.stopPropagation();
+        startSequence();
+    };
 
     btnSelect.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -379,6 +415,49 @@
         fileInput.click();
         setTimeout(() => { isFileOpening = false; }, 1000); 
     });
+
+    fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) { isFileOpening = false; return; }
+        
+        loadingOverlay.style.display = 'flex';
+        loadingSpinner.style.display = 'block';
+        tapToStart.style.display = 'none';
+
+        audio.pause();
+        audio.src = URL.createObjectURL(file);
+        posA = 0; posB = 100;
+        audio.currentTime = 0; 
+        seek.value = 0;
+
+        audio.oncanplaythrough = () => {
+            loadingSpinner.style.display = 'none';
+            tapToStart.style.display = 'block';
+            audio.oncanplaythrough = null;
+        };
+
+        updateTempo(100);
+        window.jsmediatags.read(file, {
+            onSuccess: (tag) => {
+                const t = tag.tags;
+                document.getElementById('title-text').innerText = t.title || file.name;
+                document.getElementById('artist-text').innerText = t.artist || "UNKNOWN ARTIST";
+                if (t.picture) {
+                    let base = "";
+                    for (let i = 0; i < t.picture.data.length; i++) base += String.fromCharCode(t.picture.data[i]);
+                    document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
+                    document.getElementById('jacket-img').style.display = 'block';
+                } else { document.getElementById('jacket-img').style.display = 'none'; }
+                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+            },
+            onError: () => {
+                document.getElementById('title-text').innerText = file.name;
+                document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
+                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
+            }
+        });
+        isFileOpening = false;
+    };
 
     function checkMarquee(innerId, boxId) {
         const inner = document.getElementById(innerId);
@@ -427,47 +506,6 @@
         tempoInterval = setInterval(() => updateTempo(parseInt(tempoSlider.value) + delta), 100);
     }
     function stopTempoChange() { clearInterval(tempoInterval); }
-
-    fileInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) { isFileOpening = false; return; }
-        audio.src = URL.createObjectURL(file);
-        posA = 0; posB = 100;
-        audio.currentTime = 0; 
-        seek.value = 0;
-        
-        audio.oncanplaythrough = () => {
-            audio.play().then(() => {
-                playIcon.innerHTML = ICON_PAUSE;
-            }).catch(e => {
-                console.log("Auto-play blocked:", e);
-                playIcon.innerHTML = ICON_PLAY;
-            });
-            audio.oncanplaythrough = null;
-        };
-
-        updateTempo(100);
-        window.jsmediatags.read(file, {
-            onSuccess: (tag) => {
-                const t = tag.tags;
-                document.getElementById('title-text').innerText = t.title || file.name;
-                document.getElementById('artist-text').innerText = t.artist || "UNKNOWN ARTIST";
-                if (t.picture) {
-                    let base = "";
-                    for (let i = 0; i < t.picture.data.length; i++) base += String.fromCharCode(t.picture.data[i]);
-                    document.getElementById('jacket-img').src = "data:" + t.picture.format + ";base64," + window.btoa(base);
-                    document.getElementById('jacket-img').style.display = 'block';
-                } else { document.getElementById('jacket-img').style.display = 'none'; }
-                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
-            },
-            onError: () => {
-                document.getElementById('title-text').innerText = file.name;
-                document.getElementById('artist-text').innerText = "UNKNOWN ARTIST";
-                setTimeout(() => { checkMarquee('title-inner', 'title-box'); checkMarquee('artist-inner', 'artist-box'); }, 100);
-            }
-        });
-        isFileOpening = false;
-    };
 
     audio.onloadedmetadata = () => { 
         updateSeekStyle();
@@ -540,7 +578,6 @@
             if (isA) {
                 posA = Math.min(val, posB - 1);
                 const currentHeadPos = (audio.currentTime / audio.duration) * 100;
-                
                 if (posA >= currentHeadPos - 0.5) {
                     audio.muted = true; 
                     audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
