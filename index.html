@@ -4,252 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ZEFRAM PLAYER NEO</title>
-    <meta name="apple-mobile-web-app-title" content="ZPN">
-    <link rel="apple-touch-icon" href="icon.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         :root {
             --neon-blue: #00f2ff;
-            --neon-blue-glow: rgba(0, 242, 255, 0.6);
             --bg-black: #080808;
             --glass-bg: rgba(255, 255, 255, 0.08);
             --glass-border: rgba(255, 255, 255, 0.15);
-            --font-main: "A-OTF Gothic MB101 Pr5 R", sans-serif;
-            --out-of-range: rgba(255, 255, 255, 0.1);
-            --loop-unplayed: #b0b0b0;
+        }
+        body { background-color: var(--bg-black); color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; }
+        .screen { display: none; width: 100%; height: 100vh; position: absolute; flex-direction: column; }
+        .screen.active { display: flex; }
+        
+        /* プレイヤー画面 */
+        .player-wrapper { padding: 40px 15px; display: flex; flex-direction: column; gap: 15px; }
+        header, section { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 15px; backdrop-filter: blur(10px); }
+        .app-title { color: var(--neon-blue); font-size: 1rem; text-align: center; margin: 0; letter-spacing: 2px; }
+        
+        /* 選曲ボタン */
+        .btn-select { 
+            background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue);
+            border-radius: 20px; padding: 8px 15px; font-weight: bold; cursor: pointer;
         }
 
-        body {
-            background-color: var(--bg-black);
-            color: #fff;
-            font-family: var(--font-main);
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100vh;
-            overflow: hidden;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        /* 画面切り替え用 */
-        .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; overflow-y: auto; box-sizing: border-box; }
-        .screen.active { display: flex; flex-direction: column; }
-
-        /* --- プレイヤー画面のスタイル (ご提示のものを継承) --- */
-        .player-wrapper { width: 100%; padding: 40px 10px 10px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; }
-        section, header.glass-header { background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 20px; padding: 6px 15px; border: 1px solid var(--glass-border); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); }
-        .app-title { margin: 0; color: var(--neon-blue); font-size: 1.0rem; letter-spacing: 1px; text-shadow: 0 0 10px var(--neon-blue-glow); text-align: center; }
-        .info-header { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
-        .thumb-box { width: 60px; height: 60px; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.5); flex-shrink: 0; }
-        #jacket-img { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .text-fields { flex: 1; height: 60px; display: flex; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; }
-        .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; position: relative; min-height: 1.1em; }
-        .marquee-inner { display: inline-block; white-space: nowrap; }
-        .scrolling-content { display: inline-block; padding-right: 50px; animation: scroll-slow 15s linear infinite; }
-        @keyframes scroll-slow { 0% { transform: translateX(0); } 10% { transform: translateX(0); } 85% { transform: translateX(-50%); } 100% { transform: translateX(-50%); } }
-        #title-text { font-weight: bold; font-size: 0.85rem; }
-        .artist-row { display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%; }
-        #artist-text { font-size: 0.7rem; color: var(--neon-blue); }
-        .main-btn { border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.1); color: var(--neon-blue); cursor: pointer; display: flex; justify-content: center; align-items: center; text-align: center; transition: all 0.2s; padding: 0; }
-        .btn-select { width: 60px; height: 30px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; }
-        .status-action-row { width: 100%; display: flex; justify-content: center; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 6px; }
-        .time-group { display: flex; gap: 12px; font-family: monospace; }
-        #time-display, #ab-range-text { font-size: 1.1rem; font-weight: bold; }
-
-        /* --- リスト画面のスタイル --- */
-        .list-header { padding: 40px 16px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .back-to-player { color: var(--neon-blue); font-weight: bold; font-size: 14px; }
-        .list-container { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        .list-item { padding: 16px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
-        .list-item:active { background: rgba(0, 242, 255, 0.1); }
-        .folder-tag { font-size: 10px; color: var(--neon-blue); opacity: 0.6; }
-
-        /* --- 既存のコントロール類 --- */
-        .seek-wrapper { position: relative; width: 90%; height: 10px; display: flex; align-items: center; margin: 0 auto; }
-        .seek-bg-layer { position: absolute; width: 100%; height: 6px; background: var(--out-of-range); border-radius: 3px; }
-        input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px var(--neon-blue); }
-        .marker { position: absolute; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--neon-blue); background: #000; color: var(--neon-blue); font-size: 12px; font-weight: bold; display: flex; justify-content: center; align-items: center; z-index: 10; }
-        #marker-a { top: -42px; transform: translateX(-50%); }
-        #marker-b { bottom: -42px; transform: translateX(-50%); }
-        .container-3 { display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 100px; }
-        .btn-round { border-radius: 50%; }
-        .btn-neon-border { border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue-glow); }
-        .btn-large { width: 70px; height: 70px; transform: translateY(12px); }
-        .btn-small { width: 40px; height: 40px; transform: translateY(-25px); }
-        .svg-icon { width: 1.5em; height: 1.5em; fill: currentColor; }
-        .container-tempo { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
-        .tempo-controls { display: flex; justify-content: space-between; width: 90%; margin: 0 auto; }
-        .btn-tempo { width: 60px; height: 30px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; }
+        /* プレイリスト画面 */
+        #screen-list { background: #000; overflow-y: auto; padding-top: 40px; }
+        .list-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); }
+        .list-item { padding: 15px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; }
+        .folder-tag { color: var(--neon-blue); font-size: 11px; opacity: 0.7; }
+        
+        /* 簡易コントロール */
+        .controls { display: flex; justify-content: space-around; align-items: center; padding: 20px 0; }
+        .btn-play { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--neon-blue); background: none; color: white; font-size: 20px; }
     </style>
 </head>
 <body>
 
 <div id="screen-player" class="screen active">
     <div class="player-wrapper">
-        <header class="glass-header"><h1 class="app-title">ZEFRAM PLAYER NEO</h1></header>
-        <section class="info-header">
-            <div class="thumb-box" id="jacket-container"><img id="jacket-img" src=""></div>
-            <div class="text-fields">
-                <div class="marquee-box" id="title-box"><div id="title-inner" class="marquee-inner"><span id="title-text">SELECT TRACK</span></div></div>
-                <div class="artist-row">
-                    <div class="marquee-box" id="artist-box" style="flex:1;"><div id="artist-inner" class="marquee-inner"><span id="artist-text">UNKNOWN ARTIST</span></div></div>
-                    <button class="main-btn btn-select" id="btn-show-list">選 曲</button>
-                </div>
+        <header><h1 class="app-title">ZEFRAM PLAYER NEO</h1></header>
+        <section style="display:flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div id="title-text" style="font-weight:bold;">TRACK NOT SELECTED</div>
+                <div id="artist-text" style="color:var(--neon-blue); font-size: 0.8rem;">---</div>
             </div>
-            <div class="status-action-row">
-                <div class="time-group">
-                    <div id="time-display">00:00/00:00</div>
-                    <div id="ab-range-text">00:00▶00:00</div>
-                </div>
-            </div>
+            <button class="btn-select" onclick="toggleScreen('list')">選 曲</button>
         </section>
-        <section class="container-2" style="height:100px; display:flex; align-items:center;">
-            <div class="seek-wrapper">
-                <div class="marker" id="marker-a">A</div><div class="marker" id="marker-b">B</div>
-                <div class="seek-bg-layer" id="seek-bg"></div>
-                <input type="range" id="main-seek" min="0" max="100" value="0" step="0.1">
+        
+        <section style="text-align:center;">
+            <div id="time-display" style="font-family:monospace; font-size: 1.5rem;">00:00 / 00:00</div>
+            <div class="controls">
+                <button class="btn-play" id="btn-play">▶</button>
             </div>
-        </section>
-        <section class="container-3">
-            <button class="main-btn btn-round btn-small btn-neon-border" id="btn-set-a">A▶</button>
-            <button class="main-btn btn-round btn-large btn-neon-border" id="btn-back-to-a">
-                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-            </button>
-            <button class="main-btn btn-round btn-large btn-neon-border" id="btn-play"><span id="play-icon">
-                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </span></button>
-            <button class="main-btn btn-round btn-small btn-neon-border" id="btn-set-b">◀B</button>
-        </section>
-        <section class="container-tempo">
-            <div class="tempo-controls">
-                <button class="main-btn btn-tempo" id="tempo-minus">－</button>
-                <button class="main-btn btn-tempo" id="tempo-reset">RESET</button>
-                <button class="main-btn btn-tempo" id="tempo-plus">＋</button>
-            </div>
-            <div class="seek-wrapper" style="height:30px;"><input type="range" id="tempo-slider" min="50" max="150" value="100"></div>
         </section>
     </div>
 </div>
 
 <div id="screen-list" class="screen">
     <div class="list-header">
-        <div class="back-to-player" onclick="toggleScreen('player')">BACK</div>
-        <div class="app-title">PLAYLISTS</div>
-        <div style="width:40px;"></div>
+        <button class="btn-select" onclick="toggleScreen('player')">戻る</button>
+        <span style="font-weight:bold;">PLAYLISTS</span>
+        <button class="btn-select" onclick="document.getElementById('file-input').click()">読込</button>
     </div>
-    <div class="list-container">
-        <button class="main-btn btn-select" style="width:100%; height:44px; margin-bottom:20px;" onclick="document.getElementById('file-input').click()">新規フォルダ読込</button>
-        <input type="file" id="file-input" hidden multiple accept="audio/*">
-        <div id="playlist-content"></div>
-    </div>
+    <div id="playlist-content" style="padding: 10px;"></div>
+    <input type="file" id="file-input" hidden multiple accept="audio/*, .mp3, .m4a, .wav, .aac">
 </div>
 
 <audio id="audio"></audio>
 
 <script>
     const audio = document.getElementById('audio');
-    const playIcon = document.getElementById('play-icon');
     const fileInput = document.getElementById('file-input');
-    const ICON_PLAY = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-    const ICON_PAUSE = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6.5 19h4V5h-4v14zm9 0h4V5h-4v14z"/></svg>';
+    const playlistContent = document.getElementById('playlist-content');
+    let playlistData = [];
 
-    let playlistData = {};
-    let posA = 0, posB = 100;
-    const OFFSET_TIME = 0.3;
-
-    // 画面切り替え
-    function toggleScreen(screen) {
+    function toggleScreen(name) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('screen-' + screen).classList.add('active');
+        document.getElementById('screen-' + name).classList.add('active');
     }
 
-    document.getElementById('btn-show-list').onclick = () => toggleScreen('list');
-
-    // ファイル選択時の処理
-    fileInput.onchange = async (e) => {
+    fileInput.onchange = (e) => {
         const files = e.target.files;
         if (files.length === 0) return;
 
-        let folderName = prompt("プレイリスト名を入力してください", "K-POP");
-        if (!folderName) folderName = "Unknown";
+        const folderName = prompt("プレイリスト名を入力してください", "K-POP") || "Unknown";
         
-        if (!playlistData[folderName]) playlistData[folderName] = [];
-
         for (const file of files) {
             const url = URL.createObjectURL(file);
-            playlistData[folderName].push({ title: file.name.replace(/\.[^/.]+$/, ""), url: url, artist: folderName });
-        }
-        renderPlaylist();
-    };
-
-    function renderPlaylist() {
-        const container = document.getElementById('playlist-content');
-        container.innerHTML = '';
-        for (const folder in playlistData) {
-            playlistData[folder].forEach(song => {
-                const div = document.createElement('div');
-                div.className = 'list-item';
-                div.innerHTML = `<div><div>${song.title}</div><div class="folder-tag">${folder}</div></div><span>▶</span>`;
-                div.onclick = () => {
-                    loadSong(song);
-                    toggleScreen('player');
-                };
-                container.appendChild(div);
+            playlistData.push({
+                title: file.name.replace(/\.[^/.]+$/, ""),
+                url: url,
+                folder: folderName
             });
         }
+        render();
+    };
+
+    function render() {
+        playlistContent.innerHTML = '';
+        playlistData.forEach((song, index) => {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            item.innerHTML = `<div><div>${song.title}</div><div class="folder-tag">${song.folder}</div></div><span>▶</span>`;
+            item.onclick = () => {
+                audio.src = song.url;
+                document.getElementById('title-text').innerText = song.title;
+                document.getElementById('artist-text').innerText = song.folder;
+                audio.play();
+                toggleScreen('player');
+            };
+            playlistContent.appendChild(item);
+        });
     }
 
-    function loadSong(song) {
-        audio.src = song.url;
-        document.getElementById('title-text').innerText = song.title;
-        document.getElementById('artist-text').innerText = song.artist;
-        posA = 0; posB = 100;
-        audio.play();
-        playIcon.innerHTML = ICON_PAUSE;
-        setTimeout(updateSeekStyle, 100);
-    }
-
-    // --- プレイヤー制御ロジック (既存を凝縮) ---
     document.getElementById('btn-play').onclick = () => {
-        if (audio.paused) { audio.play(); playIcon.innerHTML = ICON_PAUSE; }
-        else { audio.pause(); playIcon.innerHTML = ICON_PLAY; }
+        if (audio.paused) { audio.play(); document.getElementById('btn-play').innerText = '||'; }
+        else { audio.pause(); document.getElementById('btn-play').innerText = '▶'; }
     };
 
     audio.ontimeupdate = () => {
-        if (!audio.duration) return;
-        const currentP = (audio.currentTime / audio.duration) * 100;
-        if (currentP < posA - 0.1 || currentP >= posB) {
-            audio.currentTime = ((posA / 100) * audio.duration) + OFFSET_TIME;
-        }
-        document.getElementById('main-seek').value = currentP;
-        document.getElementById('time-display').innerText = `${formatTime(audio.currentTime)}/${formatTime(audio.duration)}`;
-        updateSeekStyle();
+        const cur = formatTime(audio.currentTime);
+        const dur = formatTime(audio.duration || 0);
+        document.getElementById('time-display').innerText = `${cur} / ${dur}`;
     };
-
-    function updateSeekStyle() {
-        const current = (audio.currentTime / audio.duration * 100) || 0;
-        document.getElementById('seek-bg').style.background = `linear-gradient(to right, var(--out-of-range) ${posA}%, var(--neon-blue) ${posA}%, var(--neon-blue) ${current}%, var(--loop-unplayed) ${current}%, var(--loop-unplayed) ${posB}%, var(--out-of-range) ${posB}%)`;
-        document.getElementById('marker-a').style.left = posA + "%";
-        document.getElementById('marker-b').style.left = posB + "%";
-        if (audio.duration) document.getElementById('ab-range-text').innerText = `${formatTime((posA/100)*audio.duration)}▶${formatTime((posB/100)*audio.duration)}`;
-    }
 
     function formatTime(s) {
         const m = Math.floor(s / 60); const sc = Math.floor(s % 60);
         return `${m.toString().padStart(2, '0')}:${sc.toString().padStart(2, '0')}`;
     }
-
-    // テンポ・A-B位置ボタン
-    document.getElementById('btn-set-a').onclick = () => { posA = (audio.currentTime / audio.duration) * 100; updateSeekStyle(); };
-    document.getElementById('btn-set-b').onclick = () => { posB = (audio.currentTime / audio.duration) * 100; updateSeekStyle(); };
-    document.getElementById('btn-back-to-a').onclick = () => { audio.currentTime = (posA / 100) * audio.duration + OFFSET_TIME; };
-    document.getElementById('tempo-reset').onclick = () => { audio.playbackRate = 1.0; document.getElementById('tempo-slider').value = 100; };
-    document.getElementById('tempo-slider').oninput = (e) => audio.playbackRate = e.target.value / 100;
-
 </script>
 </body>
 </html>
