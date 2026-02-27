@@ -39,6 +39,8 @@
             -webkit-user-select: none;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            /* 背景を底まで伸ばす */
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         #loading-overlay {
@@ -78,11 +80,15 @@
 
         .player-wrapper {
             width: 100%;
+            height: 100%; /* 全画面高さを確保 */
             max-width: 100%; 
             padding: 30px 10px 10px 10px; 
+            /* 下部の余白をセーフエリアに合わせる */
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
+            justify-content: space-between; /* 要素を上下に等間隔に配置 */
             gap: 6px;
         }
 
@@ -96,10 +102,10 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
-        header.glass-header { text-align: center; }
+        header.glass-header { text-align: center; flex-shrink: 0; }
         .app-title { margin: 0; color: var(--neon-blue); font-size: 1.0rem; letter-spacing: 1px; text-shadow: 0 0 10px var(--neon-blue-glow); }
 
-        .info-header { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+        .info-header { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; flex-shrink: 0; }
         
         .thumb-box {
             width: 60px;
@@ -203,11 +209,11 @@
             height: 100px; 
             display: flex; 
             align-items: center; 
+            flex-shrink: 0;
         }
         .seek-wrapper, .tempo-slider-wrapper { position: relative; width: 90%; height: 10px; display: flex; align-items: center; margin: 0 auto; }
         .seek-bg-layer { position: absolute; width: 100%; height: 6px; background: var(--out-of-range); border-radius: 3px; z-index: 1; overflow: hidden; }
         
-        /* 透明な操作レイヤーを広げて感度を確保 */
         input[type="range"]#main-seek, input[type="range"]#tempo-slider { 
             -webkit-appearance: none; 
             width: 100%; 
@@ -215,11 +221,10 @@
             position: relative; 
             z-index: 5; 
             margin: 0; 
-            height: 50px; /* 見えない操作領域 */
+            height: 50px; 
             outline: none;
         }
         
-        /* 元のスマートなサイズ(24px)に戻す */
         input[type="range"]#main-seek::-webkit-slider-thumb, 
         input[type="range"]#tempo-slider::-webkit-slider-thumb { 
             -webkit-appearance: none; 
@@ -232,7 +237,6 @@
             cursor: pointer;
         }
 
-        /* マーカーも元の26pxに復元 */
         .marker { 
             position: absolute; 
             width: 26px;  
@@ -245,7 +249,6 @@
             display: flex; justify-content: center; align-items: center; z-index: 10; 
         }
         
-        /* 見えない当たり判定をマーカー周囲に付加 */
         .marker::before {
             content: "";
             position: absolute;
@@ -265,7 +268,6 @@
             transform: translateX(-50%); 
         }
         
-        /* 位置を元のバランスに復元 */
         #marker-a { top: -42px; transform: translateX(-50%); } 
         #marker-a::after { bottom: -35px; } 
         #marker-b { bottom: -42px; transform: translateX(-50%); } 
@@ -278,6 +280,7 @@
             gap: 10px; 
             padding: 6px 6px; 
             min-height: 100px; 
+            flex-shrink: 0;
         }
         .btn-large { width: 70px; height: 70px; transform: translateY(12px); }
         .btn-small { width: 40px; height: 40px; transform: translateY(-25px); }
@@ -289,8 +292,9 @@
         .container-tempo { 
             display: flex; 
             flex-direction: column; 
-            gap: 20px; 
-            padding: 8px 10px 8px 10px;
+            gap: 15px; /* 全画面化に合わせて少し調整 */
+            padding: 8px 10px 15px 10px; /* 下部余白を少し増やす */
+            flex-shrink: 0;
         }
         .tempo-controls { 
             display: flex; 
